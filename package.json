@@ -1,0 +1,27 @@
+{
+  "name": "finanzas-pro",
+  "private": true,
+  "packageManager": "pnpm@10.34.9",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test --concurrency=1",
+    "lint": "turbo run lint",
+    "format": "prettier --write .",
+    "db:up": "docker compose -f infra/docker-compose.yml up -d --wait",
+    "db:down": "docker compose -f infra/docker-compose.yml down",
+    "db:migrate": "pnpm --filter @finanzas/api db:migrate",
+    "db:seed": "pnpm --filter @finanzas/api db:seed",
+    "api": "pnpm --filter @finanzas/api dev",
+    "mobile": "pnpm --filter @finanzas/mobile start"
+  },
+  "devDependencies": {
+    "prettier": "3.9.10",
+    "turbo": "2.11.10",
+    "typescript": "~6.0.3"
+  }
+}

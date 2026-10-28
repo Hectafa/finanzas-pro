@@ -1,0 +1,24 @@
+{
+  "name": "@finanzas/shared",
+  "version": "0.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "decimal.js": "10.6.0",
+    "luxon": "3.7.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@finanzas/config": "workspace:*",
+    "@types/luxon": "3.7.6",
+    "typescript": "~6.0.3",
+    "vitest": "5.0.5"
+  }
+}

@@ -1,0 +1,24 @@
+# Solo para desarrollo local. Las contraseñas aquí son de desarrollo y no deben usarse en otros entornos.
+name: finanzas-pro
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: finanzas_owner
+      POSTGRES_PASSWORD: finanzas_owner_dev
+      POSTGRES_DB: finanzas_dev
+    ports:
+      - '5433:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U finanzas_owner -d finanzas_dev']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  pgdata:
