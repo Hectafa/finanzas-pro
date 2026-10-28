@@ -546,5 +546,6 @@ Talla relativa (S < M < L < XL). No son compromisos de calendario; dependen de l
 |---|---|
 | Fase 0 — Análisis y diseño | **Aprobada** (2026-10-25, decisiones D1–D15 aceptadas con la recomendación indicada) |
 | Repositorio GitHub privado | Creado |
-| PostgreSQL de desarrollo (Docker Desktop) | **Bloqueado**: pendiente de instalación |
-| Fases 1–6 | Pendientes |
+| PostgreSQL de desarrollo (Docker Desktop) | Instalado y verificado (2026-10-28) |
+| Fase 1 — Fundación | **Implementada** (2026-10-28). Ver [fase-1-fundacion.md](fase-1-fundacion.md) |
+| Fases 2–6 | Pendientes |

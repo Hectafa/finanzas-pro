@@ -9,6 +9,8 @@ onlyBuiltDependencies:
   - esbuild
   - prisma
 
-# Telemetría de swagger-ui-dist: no se ejecuta.
+# No se ejecutan: telemetría de swagger-ui-dist, y binarios que ya vienen precompilados.
 ignoredBuiltDependencies:
   - '@scarf/scarf'
+  - '@parcel/watcher'
+  - unrs-resolver
