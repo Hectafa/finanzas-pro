@@ -1,5 +1,12 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": [
+    "DATABASE_URL",
+    "DATABASE_MIGRATION_URL",
+    "TEST_DATABASE_URL",
+    "TEST_DATABASE_MIGRATION_URL",
+    "EXPO_PUBLIC_API_URL"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -9,8 +16,7 @@
       "dependsOn": ["^build"]
     },
     "test": {
-      "dependsOn": ["^build"],
-      "env": ["DATABASE_URL", "DATABASE_MIGRATION_URL", "TEST_DATABASE_URL", "TEST_DATABASE_MIGRATION_URL"]
+      "dependsOn": ["^build"]
     },
     "lint": {},
     "dev": {
