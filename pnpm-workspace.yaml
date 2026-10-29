@@ -1,0 +1,16 @@
+packages:
+  - apps/*
+  - packages/*
+
+# pnpm 10 bloquea scripts de instalación por defecto; solo se permiten estos.
+onlyBuiltDependencies:
+  - '@prisma/engines'
+  - '@swc/core'
+  - esbuild
+  - prisma
+
+# No se ejecutan: telemetría de swagger-ui-dist, y binarios que ya vienen precompilados.
+ignoredBuiltDependencies:
+  - '@scarf/scarf'
+  - '@parcel/watcher'
+  - unrs-resolver

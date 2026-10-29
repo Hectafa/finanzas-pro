@@ -44,3 +44,7 @@ Thumbs.db
 *.sqlite
 *.db
 uploads/
+
+# Prisma generado
+apps/api/src/generated/
+apps/api/.mail/
