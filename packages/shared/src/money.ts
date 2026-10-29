@@ -44,12 +44,41 @@ export function formatMoney(value: Decimal.Value): string {
   return roundMoney(value).toFixed(MONEY_SCALE);
 }
 
-/** Importe no negativo con hasta 2 decimales, como texto. */
+/**
+ * Tasas de IVA que se pueden desglosar en un movimiento (porcentaje, como texto). Son datos
+ * gerenciales configurables, no una regla fiscal. null = sin IVA desglosado (exento o no aplica).
+ */
+export const VAT_RATES = ['16', '8', '0'] as const;
+export type VatRate = (typeof VAT_RATES)[number];
+
+/**
+ * IVA contenido en un importe que ya lo incluye: total − total / (1 + tasa), a 2 decimales.
+ * Ej.: 116.00 al 16 % → 16.00; 100.00 al 16 % → 13.79.
+ */
+export function vatIncluded(total: Decimal.Value, rate: VatRate | null): Dec {
+  if (rate === null || rate === '0') return new Dec(0);
+  const amount = toDec(total);
+  const base = amount.div(new Dec(1).plus(new Dec(rate).div(100)));
+  return roundMoney(amount.minus(base));
+}
+
+const MONEY_INPUT = /^\d{1,15}(\.\d{1,2})?$/;
+
+/**
+ * Importe no negativo con hasta 2 decimales, como texto. Las comprobaciones numéricas se
+ * omiten si el formato ya falló: Zod ejecuta los refine aunque falle la regex, y Dec lanzaría.
+ */
 export const moneySchema = z
   .string()
   .trim()
-  .regex(/^\d{1,15}(\.\d{1,2})?$/, 'Importe inválido: usa hasta 2 decimales')
-  .refine((v) => new Dec(v).lte(MAX_ABS_AMOUNT), 'Importe demasiado grande');
+  .regex(MONEY_INPUT, 'Importe inválido: usa hasta 2 decimales')
+  .refine(
+    (v) => !MONEY_INPUT.test(v) || new Dec(v).lte(MAX_ABS_AMOUNT),
+    'Importe demasiado grande',
+  );
 
 /** Importe estrictamente positivo. */
-export const positiveMoneySchema = moneySchema.refine((v) => new Dec(v).gt(0), 'Debe ser mayor a cero');
+export const positiveMoneySchema = moneySchema.refine(
+  (v) => !MONEY_INPUT.test(v) || new Dec(v).gt(0),
+  'Debe ser mayor a cero',
+);

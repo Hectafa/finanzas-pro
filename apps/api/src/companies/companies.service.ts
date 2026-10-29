@@ -1,9 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import type { CompanyContextDto, CompanySummaryDto, CreateCompanyInput, UpdateCompanyInput } from '@finanzas/shared';
+import type {
+  CompanyContextDto,
+  CompanySummaryDto,
+  CreateCompanyInput,
+  UpdateCompanyInput,
+} from '@finanzas/shared';
 import { AuditService } from '../audit/audit.service';
 import type { AuthContext, TenantContext } from '../common/request-context';
 import { DbService } from '../db/db.service';
 import { uuidv7 } from '../db/ids';
+import { ensureCompanyFinance } from '../finance/chart';
 import { roleRef, toCompanySummary } from './mappers';
 
 @Injectable()
@@ -17,7 +23,9 @@ export class CompaniesService {
   async create(auth: AuthContext, input: CreateCompanyInput): Promise<CompanySummaryDto> {
     const companyId = uuidv7();
     return this.db.tenant({ companyId, userId: auth.userId }, async (tx) => {
-      const ownerRole = await tx.role.findFirstOrThrow({ where: { key: 'OWNER', companyId: null } });
+      const ownerRole = await tx.role.findFirstOrThrow({
+        where: { key: 'OWNER', companyId: null },
+      });
       const company = await tx.company.create({
         data: {
           id: companyId,
@@ -30,11 +38,24 @@ export class CompaniesService {
         },
       });
       await tx.branch.create({
-        data: { id: uuidv7(), companyId, name: 'Principal', isDefault: true, createdBy: auth.userId },
+        data: {
+          id: uuidv7(),
+          companyId,
+          name: 'Principal',
+          isDefault: true,
+          createdBy: auth.userId,
+        },
       });
       await tx.companyMembership.create({
-        data: { id: uuidv7(), companyId, userId: auth.userId, roleId: ownerRole.id, createdBy: auth.userId },
+        data: {
+          id: uuidv7(),
+          companyId,
+          userId: auth.userId,
+          roleId: ownerRole.id,
+          createdBy: auth.userId,
+        },
       });
+      await ensureCompanyFinance(tx, companyId, auth.userId);
       await this.audit.record(tx, {
         companyId,
         actorUserId: auth.userId,

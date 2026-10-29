@@ -51,6 +51,31 @@ const companyRoutes: Array<[method: 'get' | 'post' | 'patch', path: string, body
   ['get', '/v1/dashboard/summary'],
   ['get', '/v1/audit'],
   ['get', '/v1/audit/verify'],
+  ['get', '/v1/accounts'],
+  ['post', '/v1/accounts', { name: 'Caja', type: 'CASH' }],
+  ['patch', `/v1/accounts/${uuidv7()}`, { version: 1, name: 'X' }],
+  ['post', `/v1/accounts/${uuidv7()}/archive`],
+  ['get', '/v1/categories'],
+  ['post', '/v1/categories', { name: 'X', nature: 'EXPENSE' }],
+  ['patch', `/v1/categories/${uuidv7()}`, { version: 1, name: 'X' }],
+  ['post', `/v1/categories/${uuidv7()}/archive`],
+  ['get', '/v1/transactions'],
+  ['get', `/v1/transactions/${uuidv7()}`],
+  [
+    'post',
+    '/v1/transactions',
+    {
+      id: uuidv7(),
+      type: 'OWNER_CONTRIBUTION',
+      date: '2026-01-01',
+      amount: '1.00',
+      accountId: uuidv7(),
+    },
+  ],
+  ['patch', `/v1/transactions/${uuidv7()}`, { version: 1, notes: 'x' }],
+  ['post', `/v1/transactions/${uuidv7()}/approve`],
+  ['post', `/v1/transactions/${uuidv7()}/void`, { reason: 'prueba' }],
+  ['get', '/v1/ledger/verify'],
 ];
 
 describe('aislamiento entre empresas (API)', () => {
