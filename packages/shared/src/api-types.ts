@@ -105,12 +105,17 @@ export interface DashboardSummaryDto {
   };
   generatedAt: string;
   metrics: {
+    /** Efectivo, bancos y billeteras al momento (no depende del periodo). */
     availableCash: MetricDto;
+    /** Cobrado con terminal y aún no depositado: no es dinero disponible. */
+    undeposited: MetricDto;
     income: MetricDto;
     expenses: MetricDto;
     netCashFlow: MetricDto;
     receivables: MetricDto;
     payables: MetricDto;
   };
+  /** Movimientos capturados que esperan aprobación: no están incluidos en las cifras. */
+  pendingReview: { count: number; income: string; expenses: string };
   team: { activeMembers: number; pendingInvitations: number };
 }

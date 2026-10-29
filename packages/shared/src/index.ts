@@ -7,4 +7,5 @@ export * from './permissions';
 export * from './money';
 export * from './period';
 export * from './schemas';
+export * from './finance';
 export * from './api-types';

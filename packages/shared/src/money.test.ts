@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { Dec, formatMoney, moneySchema, positiveMoneySchema, roundCost, roundMoney, toDec } from './money';
+import {
+  Dec,
+  formatMoney,
+  moneySchema,
+  positiveMoneySchema,
+  roundCost,
+  roundMoney,
+  toDec,
+  vatIncluded,
+} from './money';
 
 describe('money', () => {
   it('suma decimales sin error de punto flotante', () => {
@@ -41,6 +50,24 @@ describe('money', () => {
     expect(moneySchema.safeParse('9999999999999999').success).toBe(false);
     expect(positiveMoneySchema.safeParse('0.00').success).toBe(false);
     expect(positiveMoneySchema.safeParse('0.01').success).toBe(true);
+  });
+
+  it('un formato inválido es error de validación, nunca una excepción', () => {
+    for (const v of ['1,000.00', 'abc', '1e3', '', '--1']) {
+      expect(() => positiveMoneySchema.safeParse(v)).not.toThrow();
+      expect(positiveMoneySchema.safeParse(v).success, v).toBe(false);
+    }
+  });
+
+  it('calcula el IVA contenido en un importe que lo incluye', () => {
+    expect(vatIncluded('116.00', '16').toFixed(2)).toBe('16.00');
+    expect(vatIncluded('100.00', '16').toFixed(2)).toBe('13.79');
+    expect(vatIncluded('108.00', '8').toFixed(2)).toBe('8.00');
+    expect(vatIncluded('0.01', '16').toFixed(2)).toBe('0.00');
+    expect(vatIncluded('250.00', '0').toFixed(2)).toBe('0.00');
+    expect(vatIncluded('250.00', null).toFixed(2)).toBe('0.00');
+    // Importe máximo de un movimiento: sin pérdida de precisión.
+    expect(vatIncluded('999999999.99', '16').toFixed(2)).toBe('137931034.48');
   });
 
   it('Dec usa redondeo half-up por defecto', () => {

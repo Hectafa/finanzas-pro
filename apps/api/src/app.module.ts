@@ -13,6 +13,7 @@ import { ConfigModule } from './config/config.module';
 import { APP_ENV, type AppEnv } from './config/env';
 import { DashboardModule } from './dashboard/dashboard.controller';
 import { DbModule } from './db/db.module';
+import { FinanceModule } from './finance/finance.module';
 import { HealthModule } from './health/health.controller';
 import { MailModule } from './mail/mail.module';
 
@@ -26,16 +27,27 @@ import { MailModule } from './mail/mail.module';
           level: env.LOG_LEVEL,
           genReqId: (req, res) => {
             const incoming = req.headers['x-request-id'];
-            const id = typeof incoming === 'string' && /^[\w-]{8,64}$/.test(incoming) ? incoming : randomUUID();
+            const id =
+              typeof incoming === 'string' && /^[\w-]{8,64}$/.test(incoming)
+                ? incoming
+                : randomUUID();
             res.setHeader('X-Request-Id', id);
             return id;
           },
           // Nunca se registran credenciales, tokens ni cuerpos de solicitud.
           redact: {
-            paths: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]', 'req.query.token'],
+            paths: [
+              'req.headers.authorization',
+              'req.headers.cookie',
+              'res.headers["set-cookie"]',
+              'req.query.token',
+            ],
             censor: '[oculto]',
           },
-          transport: env.NODE_ENV === 'development' ? { target: 'pino-pretty', options: { singleLine: true } } : undefined,
+          transport:
+            env.NODE_ENV === 'development'
+              ? { target: 'pino-pretty', options: { singleLine: true } }
+              : undefined,
         },
       }),
     }),
@@ -57,6 +69,7 @@ import { MailModule } from './mail/mail.module';
     AuditModule,
     AuthModule,
     CompaniesModule,
+    FinanceModule,
     DashboardModule,
     HealthModule,
   ],

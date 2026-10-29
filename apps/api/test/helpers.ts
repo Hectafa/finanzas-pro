@@ -47,6 +47,12 @@ export async function createTestContext(): Promise<TestContext> {
 
 // Orden respetando llaves foráneas. Conserva permisos y roles de sistema (se resincronizan).
 const RESET_STATEMENTS = [
+  'DELETE FROM journal_lines',
+  'DELETE FROM journal_entries',
+  'DELETE FROM financial_transactions',
+  'DELETE FROM financial_accounts',
+  'DELETE FROM transaction_categories',
+  'DELETE FROM ledger_accounts',
   'DELETE FROM audit_logs',
   'DELETE FROM invitations',
   'DELETE FROM company_memberships',

@@ -29,20 +29,21 @@ enum InvitationStatus {
 }
 
 model User {
-  id                String              @id @db.Uuid
-  email             String              @unique @db.VarChar(254)
-  passwordHash      String              @map("password_hash")
-  fullName          String              @map("full_name") @db.VarChar(120)
-  status            UserStatus          @default(ACTIVE)
-  emailVerifiedAt   DateTime?           @map("email_verified_at") @db.Timestamptz(3)
-  failedLoginCount  Int                 @default(0) @map("failed_login_count")
-  lockedUntil       DateTime?           @map("locked_until") @db.Timestamptz(3)
-  passwordChangedAt DateTime            @default(now()) @map("password_changed_at") @db.Timestamptz(3)
-  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                String                 @id @db.Uuid
+  email             String                 @unique @db.VarChar(254)
+  passwordHash      String                 @map("password_hash")
+  fullName          String                 @map("full_name") @db.VarChar(120)
+  status            UserStatus             @default(ACTIVE)
+  emailVerifiedAt   DateTime?              @map("email_verified_at") @db.Timestamptz(3)
+  failedLoginCount  Int                    @default(0) @map("failed_login_count")
+  lockedUntil       DateTime?              @map("locked_until") @db.Timestamptz(3)
+  passwordChangedAt DateTime               @default(now()) @map("password_changed_at") @db.Timestamptz(3)
+  createdAt         DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
   sessions          Session[]
   memberships       CompanyMembership[]
   resetTokens       PasswordResetToken[]
+  transactions      FinancialTransaction[] @relation("TransactionCreator")
 
   @@map("users")
 }
@@ -125,10 +126,10 @@ model Branch {
 }
 
 model Permission {
-  key         String           @id @db.VarChar(64)
-  module      String           @db.VarChar(32)
-  action      String           @db.VarChar(32)
-  roles       RolePermission[]
+  key    String           @id @db.VarChar(64)
+  module String           @db.VarChar(32)
+  action String           @db.VarChar(32)
+  roles  RolePermission[]
 
   @@map("permissions")
 }
@@ -206,6 +207,186 @@ model Invitation {
 
   @@index([companyId, status])
   @@map("invitations")
+}
+
+// =====================================================================================
+// Fase 2: finanzas esenciales. Principio: una sola fuente de verdad contable.
+// Todo hecho económico confirmado genera un asiento de partida doble (journal_entries +
+// journal_lines). Saldos y cifras se DERIVAN de las líneas; nunca se capturan.
+// El libro es append-only para la API: una corrección es un asiento de reversa.
+// =====================================================================================
+
+enum LedgerAccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+enum FinancialAccountType {
+  CASH
+  BANK
+  DIGITAL_WALLET
+  TERMINAL
+}
+
+enum CategoryNature {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+  OWNER_CONTRIBUTION
+  OWNER_WITHDRAWAL
+}
+
+enum TransactionStatus {
+  PENDING_REVIEW
+  POSTED
+  VOIDED
+}
+
+/// Plan de cuentas interno por empresa. system_key identifica las cuentas que el sistema usa
+/// por nombre (IVA, capital, saldos iniciales); el resto nace de cuentas de dinero y categorías.
+model LedgerAccount {
+  id         String            @id @db.Uuid
+  companyId  String            @map("company_id") @db.Uuid
+  code       String            @db.VarChar(16)
+  name       String            @db.VarChar(120)
+  type       LedgerAccountType
+  systemKey  String?           @map("system_key") @db.VarChar(32)
+  createdAt  DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  archivedAt DateTime?         @map("archived_at") @db.Timestamptz(3)
+
+  @@unique([companyId, code])
+  @@unique([id, companyId])
+  @@map("ledger_accounts")
+}
+
+/// Asiento. (source_type, source_id, purpose) es único: un hecho no se contabiliza dos veces.
+model JournalEntry {
+  id              String        @id @db.Uuid
+  companyId       String        @map("company_id") @db.Uuid
+  entryDate       DateTime      @map("entry_date") @db.Date
+  sourceType      String        @map("source_type") @db.VarChar(32)
+  sourceId        String        @map("source_id") @db.Uuid
+  purpose         String        @db.VarChar(32)
+  reversesEntryId String?       @map("reverses_entry_id") @db.Uuid
+  memo            String?       @db.VarChar(200)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdBy       String        @map("created_by") @db.Uuid
+  lines           JournalLine[]
+
+  @@unique([companyId, sourceType, sourceId, purpose])
+  @@unique([id, companyId])
+  @@index([companyId, entryDate])
+  @@map("journal_entries")
+}
+
+/// Línea de asiento: exactamente uno de debit/credit es > 0 (restricción en BD).
+model JournalLine {
+  id                 String       @id @db.Uuid
+  entryId            String       @map("entry_id") @db.Uuid
+  companyId          String       @map("company_id") @db.Uuid
+  lineNo             Int          @map("line_no") @db.SmallInt
+  ledgerAccountId    String       @map("ledger_account_id") @db.Uuid
+  debit              Decimal      @default(0) @db.Decimal(19, 4)
+  credit             Decimal      @default(0) @db.Decimal(19, 4)
+  financialAccountId String?      @map("financial_account_id") @db.Uuid
+  categoryId         String?      @map("category_id") @db.Uuid
+  entry              JournalEntry @relation(fields: [entryId], references: [id], onDelete: Restrict)
+
+  @@unique([entryId, lineNo])
+  @@index([companyId, ledgerAccountId])
+  @@map("journal_lines")
+}
+
+/// Cuenta donde está el dinero (caja, banco, billetera, terminal). El saldo NO se guarda aquí:
+/// es la suma de las líneas de su cuenta contable.
+model FinancialAccount {
+  id              String                 @id @db.Uuid
+  companyId       String                 @map("company_id") @db.Uuid
+  name            String                 @db.VarChar(80)
+  type            FinancialAccountType
+  institution     String?                @db.VarChar(80)
+  currency        String                 @db.Char(3)
+  ledgerAccountId String                 @unique @map("ledger_account_id") @db.Uuid
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdBy       String                 @map("created_by") @db.Uuid
+  updatedAt       DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedBy       String?                @map("updated_by") @db.Uuid
+  archivedAt      DateTime?              @map("archived_at") @db.Timestamptz(3)
+  version         Int                    @default(1)
+  transactions    FinancialTransaction[] @relation("TransactionAccount")
+  transfersIn     FinancialTransaction[] @relation("TransactionToAccount")
+
+  @@index([companyId])
+  @@map("financial_accounts")
+}
+
+model TransactionCategory {
+  id              String                 @id @db.Uuid
+  companyId       String                 @map("company_id") @db.Uuid
+  name            String                 @db.VarChar(80)
+  nature          CategoryNature
+  parentId        String?                @map("parent_id") @db.Uuid
+  ledgerAccountId String                 @unique @map("ledger_account_id") @db.Uuid
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdBy       String?                @map("created_by") @db.Uuid
+  updatedAt       DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedBy       String?                @map("updated_by") @db.Uuid
+  archivedAt      DateTime?              @map("archived_at") @db.Timestamptz(3)
+  version         Int                    @default(1)
+  transactions    FinancialTransaction[]
+
+  @@index([companyId])
+  @@map("transaction_categories")
+}
+
+/// El "movimiento" que ve el usuario. Su efecto contable vive en journal_entries
+/// (source_type = 'TRANSACTION', source_id = id).
+model FinancialTransaction {
+  id              String               @id @db.Uuid
+  companyId       String               @map("company_id") @db.Uuid
+  type            TransactionType
+  status          TransactionStatus
+  transactionDate DateTime             @map("transaction_date") @db.Date
+  amount          Decimal              @db.Decimal(19, 4)
+  vatRate         String?              @map("vat_rate") @db.VarChar(4)
+  vatAmount       Decimal              @default(0) @map("vat_amount") @db.Decimal(19, 4)
+  currency        String               @db.Char(3)
+  accountId       String               @map("account_id") @db.Uuid
+  toAccountId     String?              @map("to_account_id") @db.Uuid
+  categoryId      String?              @map("category_id") @db.Uuid
+  description     String?              @db.VarChar(200)
+  reference       String?              @db.VarChar(60)
+  counterparty    String?              @db.VarChar(120)
+  notes           String?              @db.VarChar(1000)
+  /// sha256 de la solicitud original: un reintento con el mismo id y otro contenido se rechaza.
+  requestHash     String               @map("request_hash") @db.Char(64)
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdBy       String               @map("created_by") @db.Uuid
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedBy       String?              @map("updated_by") @db.Uuid
+  postedAt        DateTime?            @map("posted_at") @db.Timestamptz(3)
+  postedBy        String?              @map("posted_by") @db.Uuid
+  voidedAt        DateTime?            @map("voided_at") @db.Timestamptz(3)
+  voidedBy        String?              @map("voided_by") @db.Uuid
+  voidReason      String?              @map("void_reason") @db.VarChar(300)
+  version         Int                  @default(1)
+  account         FinancialAccount     @relation("TransactionAccount", fields: [accountId], references: [id], onDelete: Restrict)
+  toAccount       FinancialAccount?    @relation("TransactionToAccount", fields: [toAccountId], references: [id], onDelete: Restrict)
+  category        TransactionCategory? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  creator         User                 @relation("TransactionCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@index([companyId, transactionDate(sort: Desc), id(sort: Desc)])
+  @@index([companyId, status])
+  @@index([companyId, createdBy])
+  @@map("financial_transactions")
 }
 
 /// Bitácora append-only. El rol de la API no tiene UPDATE/DELETE sobre esta tabla.

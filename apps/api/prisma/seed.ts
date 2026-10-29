@@ -8,6 +8,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { hashPassword } from '../src/auth/passwords';
 import { uuidv7 } from '../src/db/ids';
 import { syncReferenceData } from '../src/db/reference-data';
+import { ensureCompanyFinance } from '../src/finance/chart';
 import { PrismaClient } from '../src/generated/prisma/client';
 
 const DEMO_COMPANY = 'Cafetería Demo (DATOS DE PRUEBA)';
@@ -17,7 +18,8 @@ const DEMO_USERS = [
 ] as const;
 
 async function seedDemo(prisma: PrismaClient) {
-  if (process.env.NODE_ENV === 'production') throw new Error('No se crean datos demo en producción');
+  if (process.env.NODE_ENV === 'production')
+    throw new Error('No se crean datos demo en producción');
   const password = process.env.DEMO_PASSWORD ?? 'demo-finanzas-2026';
   const passwordHash = await hashPassword(password);
 
@@ -41,7 +43,9 @@ async function seedDemo(prisma: PrismaClient) {
     await tx.company.create({
       data: { id: companyId, name: DEMO_COMPANY, isDemo: true, createdBy: owner.id },
     });
-    await tx.branch.create({ data: { id: uuidv7(), companyId, name: 'Principal', isDefault: true, createdBy: owner.id } });
+    await tx.branch.create({
+      data: { id: uuidv7(), companyId, name: 'Principal', isDefault: true, createdBy: owner.id },
+    });
     for (const u of users) {
       const role = await tx.role.findFirstOrThrow({ where: { key: u.role, companyId: null } });
       await tx.companyMembership.create({
@@ -49,7 +53,9 @@ async function seedDemo(prisma: PrismaClient) {
       });
     }
   });
-  console.log(`Datos demo listos. Usuarios: ${DEMO_USERS.map((u) => u.email).join(', ')} (contraseña: DEMO_PASSWORD o la predeterminada del README).`);
+  console.log(
+    `Datos demo listos. Usuarios: ${DEMO_USERS.map((u) => u.email).join(', ')} (contraseña: DEMO_PASSWORD o la predeterminada del README).`,
+  );
 }
 
 async function main() {
@@ -60,6 +66,12 @@ async function main() {
     await syncReferenceData(prisma);
     console.log('Permisos y roles de sistema sincronizados.');
     if (process.argv.includes('--demo')) await seedDemo(prisma);
+    // Empresas creadas antes de la Fase 2: plan de cuentas de sistema y categorías iniciales.
+    const companies = await prisma.company.findMany({ select: { id: true, createdBy: true } });
+    for (const c of companies) {
+      await prisma.$transaction((tx) => ensureCompanyFinance(tx, c.id, c.createdBy));
+    }
+    console.log(`Configuración financiera verificada en ${companies.length} empresa(s).`);
   } finally {
     await prisma.$disconnect();
   }
