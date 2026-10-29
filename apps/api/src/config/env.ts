@@ -15,6 +15,12 @@ export const envSchema = z
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
     SESSION_MAX_DAYS: z.coerce.number().int().min(1).max(365).default(90),
     APP_LINK_BASE: z.string().min(1).default('finanzaspro://'),
+    /** URL de la versión web (sin "/" final). Si se define, los correos incluyen también su enlace. */
+    APP_WEB_URL: z
+      .url()
+      .transform((v) => v.replace(/\/+$/, ''))
+      .optional()
+      .or(z.literal('').transform(() => undefined)),
     MAIL_DRIVER: z.enum(['file', 'memory', 'resend']).default('file'),
     MAIL_FROM: z.string().min(3).default('Finanzas Pro <no-reply@example.com>'),
     RESEND_API_KEY: z.string().optional(),

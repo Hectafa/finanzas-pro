@@ -8,7 +8,7 @@ import { configureApp } from '../src/app.setup';
 import { DbService } from '../src/db/db.service';
 import { syncReferenceData } from '../src/db/reference-data';
 import { PrismaClient } from '../src/generated/prisma/client';
-import { Mailer, MemoryMailer } from '../src/mail/mailer';
+import { Mailer, type MemoryMailer } from '../src/mail/mailer';
 import { TEST_DATABASE_MIGRATION_URL } from './test-env';
 
 export const PASSWORD = 'clave-de-prueba-segura-2026';

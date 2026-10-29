@@ -51,6 +51,7 @@ export default function AppLayout() {
         options={{ title: 'Tus empresas', headerBackVisible: valid }}
       />
       <Stack.Screen name="usuarios" options={{ title: 'Usuarios y accesos' }} />
+      <Stack.Screen name="roles" options={{ title: 'Roles y permisos' }} />
       <Stack.Screen name="sesiones" options={{ title: 'Sesiones activas' }} />
     </Stack>
   );

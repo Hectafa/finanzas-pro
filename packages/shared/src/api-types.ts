@@ -60,6 +60,10 @@ export interface RoleDto {
   description: string | null;
   isSystem: boolean;
   permissions: string[];
+  /** Concurrencia optimista: se envía al editar. */
+  version: number;
+  /** Membresías activas con este rol. */
+  memberCount: number;
 }
 
 export interface MemberDto {

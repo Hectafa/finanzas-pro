@@ -20,17 +20,17 @@ export default function ForgotPasswordScreen() {
 
   if (sentMessage) {
     return (
-      <Screen>
+      <Screen narrow>
         <Text variant="titleMedium">Revisa tu correo</Text>
         <Text variant="bodyMedium" style={{ marginTop: 8 }}>
-          {sentMessage}. Abre el enlace desde este teléfono; vence en 30 minutos.
+          {sentMessage}. Abre el enlace desde este dispositivo; vence en 30 minutos.
         </Text>
       </Screen>
     );
   }
 
   return (
-    <Screen>
+    <Screen narrow>
       <Text variant="bodyMedium" style={{ marginBottom: 12 }}>
         Te enviaremos un enlace para crear una nueva contraseña.
       </Text>

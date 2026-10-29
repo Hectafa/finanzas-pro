@@ -3,6 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "files": [
-    "tsconfig.base.json"
-  ]
+    "tsconfig.base.json",
+    "eslint-money.mjs"
+  ],
+  "exports": {
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./eslint-money": "./eslint-money.mjs"
+  }
 }

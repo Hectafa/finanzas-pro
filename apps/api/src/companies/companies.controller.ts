@@ -7,12 +7,14 @@ import {
   createInvitationSchema,
   createRoleSchema,
   updateCompanySchema,
+  updateRoleSchema,
   type AcceptInvitationInput,
   type ChangeMemberRoleInput,
   type CreateCompanyInput,
   type CreateInvitationInput,
   type CreateRoleInput,
   type UpdateCompanyInput,
+  type UpdateRoleInput,
 } from '@finanzas/shared';
 import {
   Authorize,
@@ -114,6 +116,24 @@ export class MembersController {
     @Body(new ZodPipe(createRoleSchema)) body: CreateRoleInput,
   ) {
     return this.members.createRole(t, body);
+  }
+
+  @Patch('roles/:id')
+  @Authorize('users:manage')
+  @ApiZodBody(updateRoleSchema)
+  updateRole(
+    @CurrentTenant() t: TenantContext,
+    @Param('id', uuidParam) id: string,
+    @Body(new ZodPipe(updateRoleSchema)) body: UpdateRoleInput,
+  ) {
+    return this.members.updateRole(t, id, body);
+  }
+
+  @Post('roles/:id/archive')
+  @Authorize('users:manage')
+  @HttpCode(204)
+  async archiveRole(@CurrentTenant() t: TenantContext, @Param('id', uuidParam) id: string) {
+    await this.members.archiveRole(t, id);
   }
 }
 

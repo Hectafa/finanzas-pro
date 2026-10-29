@@ -2,12 +2,14 @@ import type {
   CompanyContextDto,
   CompanySummaryDto,
   CreateCompanyInput,
+  CreateRoleInput,
   DashboardSummaryDto,
   InvitationDto,
   MemberDto,
   PeriodPreset,
   RoleDto,
   SessionDto,
+  UpdateRoleInput,
   UserDto,
 } from '@finanzas/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -117,6 +119,42 @@ export function useSetMemberStatus() {
         company: true,
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['members'] }),
+  });
+}
+
+/** Un cambio de rol afecta la lista de roles y los nombres de rol que muestran miembros e invitaciones. */
+function useInvalidateRoles() {
+  const qc = useQueryClient();
+  return () =>
+    Promise.all(
+      ['roles', 'members', 'invitations'].map((key) => qc.invalidateQueries({ queryKey: [key] })),
+    );
+}
+
+export function useCreateRole() {
+  const invalidate = useInvalidateRoles();
+  return useMutation({
+    mutationFn: (input: CreateRoleInput) =>
+      api.request<RoleDto>('/roles', { method: 'POST', body: input, company: true }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateRole() {
+  const invalidate = useInvalidateRoles();
+  return useMutation({
+    mutationFn: ({ id, ...input }: UpdateRoleInput & { id: string }) =>
+      api.request<RoleDto>(`/roles/${id}`, { method: 'PATCH', body: input, company: true }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useArchiveRole() {
+  const invalidate = useInvalidateRoles();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.request<void>(`/roles/${id}/archive`, { method: 'POST', company: true }),
+    onSuccess: invalidate,
   });
 }
 

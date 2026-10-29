@@ -8,6 +8,7 @@ import { DbService } from '../db/db.service';
 import { newOpaqueToken, sha256Hex, uuidv7 } from '../db/ids';
 import type { Invitation, Role } from '../generated/prisma/client';
 import { Mailer } from '../mail/mailer';
+import { linksText } from '../mail/links';
 import { roleRef, toCompanySummary } from './mappers';
 import { MembersService } from './members.service';
 
@@ -82,8 +83,8 @@ export class InvitationsService {
       subject: `${inviterName} te invitó a ${companyName} en Finanzas Pro`,
       text:
         `${inviterName} te invitó a colaborar en ${companyName} con el rol ${invitation.role.name}.\n\n` +
-        `Inicia sesión o crea tu cuenta con este correo y abre el enlace desde tu teléfono ` +
-        `(válido ${INVITATION_DAYS} días):\n\n${this.env.APP_LINK_BASE}accept-invite?token=${token}\n`,
+        `Inicia sesión o crea tu cuenta con este correo y abre el enlace ` +
+        `(válido ${INVITATION_DAYS} días):\n\n${linksText(this.env, `accept-invite?token=${token}`)}`,
     });
     return toInvitationDto(invitation);
   }

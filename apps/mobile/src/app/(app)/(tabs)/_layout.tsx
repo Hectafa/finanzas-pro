@@ -6,9 +6,8 @@ import { useTheme } from 'react-native-paper';
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-const icon =
-  (name: IconName) =>
-  ({ color, size }: { color: ColorValue; size: number }) => (
+const icon = (name: IconName) => {
+  const TabIcon = ({ color, size }: { color: ColorValue; size: number }) => (
     // React Navigation entrega colores de tema como texto; el valor numérico no aplica aquí.
     <MaterialCommunityIcons
       name={name}
@@ -16,6 +15,8 @@ const icon =
       size={size}
     />
   );
+  return TabIcon;
+};
 
 export default function TabsLayout() {
   const theme = useTheme();

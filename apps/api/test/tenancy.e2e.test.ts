@@ -43,6 +43,8 @@ const companyRoutes: Array<[method: 'get' | 'post' | 'patch', path: string, body
   ['post', `/v1/members/${uuidv7()}/reactivate`],
   ['get', '/v1/roles'],
   ['post', '/v1/roles', { name: 'X', permissions: ['dashboard:view'] }],
+  ['patch', `/v1/roles/${uuidv7()}`, { version: 1, name: 'Hackeado' }],
+  ['post', `/v1/roles/${uuidv7()}/archive`],
   ['get', '/v1/invitations'],
   ['post', '/v1/invitations', { email: 'x@y.mx', roleId: uuidv7() }],
   ['post', `/v1/invitations/${uuidv7()}/revoke`],
@@ -108,6 +110,32 @@ describe('aislamiento entre empresas (API)', () => {
       .set(inCompany(ana, companyA))
       .send({ email: 'x@y.mx', roleId: custom.body.id });
     expect(res.status).toBe(404);
+  });
+
+  it('un rol personalizado de otra empresa no puede editarse ni archivarse desde la empresa propia', async () => {
+    const custom = await ctx
+      .http()
+      .post('/v1/roles')
+      .set(inCompany(beto, companyB))
+      .send({ name: 'Cajero B', permissions: ['sales:create'] });
+    const edit = await ctx
+      .http()
+      .patch(`/v1/roles/${custom.body.id}`)
+      .set(inCompany(ana, companyA))
+      .send({ version: 1, permissions: ['users:manage'] });
+    expect(edit.status).toBe(404);
+    const archive = await ctx
+      .http()
+      .post(`/v1/roles/${custom.body.id}/archive`)
+      .set(inCompany(ana, companyA));
+    expect(archive.status).toBe(404);
+
+    const unchanged = await ctx.owner.role.findUniqueOrThrow({
+      where: { id: custom.body.id },
+      include: { permissions: true },
+    });
+    expect(unchanged.archivedAt).toBeNull();
+    expect(unchanged.permissions.map((p) => p.permissionKey)).toEqual(['sales:create']);
   });
 
   it('exige un X-Company-Id válido', async () => {

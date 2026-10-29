@@ -23,9 +23,9 @@ export default function ResetPasswordScreen() {
 
   if (!token) {
     return (
-      <Screen>
+      <Screen narrow>
         <Text variant="bodyMedium">
-          El enlace está incompleto. Solicita uno nuevo desde "Olvidé mi contraseña".
+          El enlace está incompleto. Solicita uno nuevo desde “Olvidé mi contraseña”.
         </Text>
       </Screen>
     );
@@ -33,7 +33,7 @@ export default function ResetPasswordScreen() {
 
   if (done) {
     return (
-      <Screen>
+      <Screen narrow>
         <Text variant="titleMedium">Contraseña actualizada</Text>
         <Text variant="bodyMedium" style={{ marginVertical: 8 }}>
           Por seguridad cerramos todas tus sesiones. Inicia sesión con tu nueva contraseña.
@@ -46,7 +46,7 @@ export default function ResetPasswordScreen() {
   }
 
   return (
-    <Screen>
+    <Screen narrow>
       <FormError message={form.formError ?? form.errors.token ?? null} />
       <Field
         label="Nueva contraseña"

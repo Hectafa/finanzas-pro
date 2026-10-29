@@ -16,6 +16,7 @@ import { DbService, type Tx } from '../db/db.service';
 import { newOpaqueToken, sha256Hex, uuidv7 } from '../db/ids';
 import type { User } from '../generated/prisma/client';
 import { Mailer } from '../mail/mailer';
+import { linksText } from '../mail/links';
 import { burnPasswordCheck, hashPassword, verifyPassword } from './passwords';
 import { TokenService } from './token.service';
 
@@ -250,13 +251,13 @@ export class AuthService {
       });
     });
 
-    const link = `${this.env.APP_LINK_BASE}reset-password?token=${token}`;
     await this.mailer.send({
       to: user.email,
       subject: 'Restablece tu contraseña de Finanzas Pro',
       text:
-        `Hola ${user.fullName}:\n\nPara crear una nueva contraseña abre este enlace desde tu teléfono ` +
-        `(válido ${RESET_TOKEN_MINUTES} minutos):\n\n${link}\n\nSi no lo solicitaste, ignora este mensaje.`,
+        `Hola ${user.fullName}:\n\nPara crear una nueva contraseña abre este enlace ` +
+        `(válido ${RESET_TOKEN_MINUTES} minutos):\n\n${linksText(this.env, `reset-password?token=${token}`)}\n` +
+        `Si no lo solicitaste, ignora este mensaje.`,
     });
   }
 

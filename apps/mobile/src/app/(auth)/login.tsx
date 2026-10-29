@@ -22,10 +22,12 @@ export default function LoginScreen() {
   });
 
   return (
-    <Screen>
+    <Screen narrow>
       <View style={[styles.mtLarge, { marginBottom: 24 }]}>
         <Text variant="headlineMedium">Finanzas Pro</Text>
-        <Text variant="bodyLarge">Controla las finanzas de tu negocio desde tu teléfono.</Text>
+        <Text variant="bodyLarge">
+          Controla las finanzas de tu negocio desde tu teléfono o tu computadora.
+        </Text>
       </View>
       <FormError message={form.formError} />
       <Field

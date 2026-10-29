@@ -76,7 +76,9 @@ export default function MasScreen() {
         <Dialog visible={confirm} onDismiss={() => setConfirm(false)}>
           <Dialog.Title>¿Cerrar sesión?</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium">Tendrás que volver a iniciar sesión en este teléfono.</Text>
+            <Text variant="bodyMedium">
+              Tendrás que volver a iniciar sesión en este dispositivo.
+            </Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setConfirm(false)}>Cancelar</Button>

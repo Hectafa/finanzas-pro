@@ -1,16 +1,16 @@
 # Finanzas Pro
 
-Aplicación móvil para gestionar las finanzas de negocios (inicialmente alimentos y bebidas): saldos, ingresos y gastos, ventas, compras, inventario con recetas, cuentas por cobrar y pagar, presupuestos, reportes y asistente de IA.
+Aplicación (teléfono Android/iOS y computadora vía navegador) para gestionar las finanzas de negocios (inicialmente alimentos y bebidas): saldos, ingresos y gastos, ventas, compras, inventario con recetas, cuentas por cobrar y pagar, presupuestos, reportes y asistente de IA.
 
-> **Estado:** Fase 1 (fundación) implementada: autenticación, empresas, usuarios, roles, permisos, aislamiento entre empresas, auditoría y dashboard inicial. Las cifras financieras llegan en la Fase 2. Detalle en [docs/fase-1-fundacion.md](docs/fase-1-fundacion.md).
+> **Estado:** Fase 1 (fundación) implementada: autenticación, empresas, usuarios, roles y permisos (incluidos roles personalizados editables), aislamiento entre empresas, auditoría, dashboard inicial y versión web para computadora. Las cifras financieras llegan en la Fase 2. Detalle en [docs/fase-1-fundacion.md](docs/fase-1-fundacion.md).
 
 ## Estructura
 
 ```
 apps/api        API REST (NestJS 12, Prisma 7, PostgreSQL 17)
-apps/mobile     App móvil (Expo SDK 58, Expo Router, React Native Paper)
+apps/mobile     App para teléfono y web (Expo SDK 58, Expo Router, React Native Paper, react-native-web)
 packages/shared Permisos, esquemas de validación, dinero y periodos (compartido API/app)
-packages/config Configuración base de TypeScript
+packages/config Configuración base de TypeScript y reglas de ESLint de dinero
 infra/          Docker Compose para la base de datos de desarrollo
 docs/           Diseño, decisiones y guías
 ```
@@ -25,8 +25,8 @@ docs/           Diseño, decisiones y guías
 ## Puesta en marcha
 
 ```bash
-pnpm install
-pnpm db:up                                   # PostgreSQL en localhost:5433
+pnpm install                                 # también compila packages/shared y genera el cliente Prisma
+pnpm db:up                                   # PostgreSQL en localhost:5433 (Docker Desktop debe estar abierto)
 cp apps/api/.env.example apps/api/.env       # luego cambia JWT_ACCESS_SECRET (ver comentario en el archivo)
 pnpm db:migrate                              # aplica migraciones
 pnpm --filter @finanzas/api db:seed:demo     # permisos, roles y datos de demostración
@@ -42,11 +42,22 @@ pnpm mobile                                   # escanea el QR con Expo Go
 
 `EXPO_PUBLIC_API_URL` según dónde corre la app:
 
-| Dónde               | Valor                                                                                          |
-| ------------------- | ---------------------------------------------------------------------------------------------- |
-| Emulador de Android | `http://10.0.2.2:3000`                                                                         |
-| Simulador de iOS    | `http://localhost:3000`                                                                        |
-| Teléfono físico     | `http://<IP de tu PC en la red local>:3000` (permite el puerto 3000 en el Firewall de Windows) |
+| Dónde                             | Valor                                                                                          |
+| --------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Emulador de Android               | `http://10.0.2.2:3000`                                                                         |
+| Simulador de iOS                  | `http://localhost:3000`                                                                        |
+| Teléfono físico                   | `http://<IP de tu PC en la red local>:3000` (permite el puerto 3000 en el Firewall de Windows) |
+| Navegador en la misma computadora | `http://localhost:3000`                                                                        |
+
+### En la computadora (navegador)
+
+```bash
+pnpm web          # abre http://localhost:8081
+```
+
+La API debe permitir ese origen: `CORS_ORIGINS=http://localhost:8081` en `apps/api/.env` (ya viene en `.env.example`). Con `APP_WEB_URL=http://localhost:8081`, los correos de recuperación e invitación incluyen también el enlace para abrirlos en el navegador.
+
+`EXPO_PUBLIC_API_URL` es una sola por ejecución: si pruebas teléfono y navegador a la vez, usa la IP de tu PC (`http://192.168.x.x:3000`) y agrega `http://192.168.x.x:8081` a `CORS_ORIGINS` si abres la web desde otro equipo.
 
 ### Usuarios de demostración
 
@@ -70,6 +81,7 @@ npx uri-scheme open "finanzaspro://reset-password?token=..." --android
 ## Pruebas
 
 ```bash
+pnpm lint        # ESLint, incluidas las reglas de dinero (nada de number/parseFloat para importes)
 pnpm typecheck   # tipos de todos los paquetes
 pnpm test        # unitarias + integración (la API usa la base finanzas_test de Docker)
 ```

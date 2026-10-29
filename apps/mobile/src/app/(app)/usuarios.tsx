@@ -1,9 +1,11 @@
 import { createInvitationSchema } from '@finanzas/shared';
+import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { Button, Card, Chip, HelperText, List, Text } from 'react-native-paper';
 import { ErrorState, Field, FormError, Loading, Screen, styles } from '../../components/ui';
 import { ApiError } from '../../lib/api';
+import { confirmAction, notify } from '../../lib/confirm';
 import { useZodForm } from '../../lib/forms';
 import {
   useCurrentCompany,
@@ -46,28 +48,20 @@ export default function UsuariosScreen() {
     form.set('email')('');
   });
 
-  const toggleMember = (id: string, name: string, active: boolean) => {
-    Alert.alert(
-      active ? 'Reactivar acceso' : 'Revocar acceso',
-      `${active ? 'Reactivar' : 'Revocar'} el acceso de ${name}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: active ? 'Reactivar' : 'Revocar',
-          style: active ? 'default' : 'destructive',
-          onPress: () =>
-            setStatus.mutate(
-              { id, active },
-              {
-                onError: (e) =>
-                  Alert.alert(
-                    'No fue posible',
-                    e instanceof ApiError ? e.message : 'Intenta de nuevo',
-                  ),
-              },
-            ),
-        },
-      ],
+  const toggleMember = async (id: string, name: string, active: boolean) => {
+    const ok = await confirmAction({
+      title: active ? 'Reactivar acceso' : 'Revocar acceso',
+      message: `¿${active ? 'Reactivar' : 'Revocar'} el acceso de ${name}?`,
+      confirmText: active ? 'Reactivar' : 'Revocar',
+      destructive: !active,
+    });
+    if (!ok) return;
+    setStatus.mutate(
+      { id, active },
+      {
+        onError: (e) =>
+          notify('No fue posible', e instanceof ApiError ? e.message : 'Intenta de nuevo'),
+      },
     );
   };
 
@@ -77,7 +71,16 @@ export default function UsuariosScreen() {
 
   return (
     <Screen>
-      <Text variant="titleMedium">Miembros</Text>
+      <List.Item
+        title="Roles y permisos"
+        description="Crea roles a la medida de tu negocio y edita sus permisos"
+        left={(p) => <List.Icon {...p} icon="shield-account-outline" />}
+        right={(p) => <List.Icon {...p} icon="chevron-right" />}
+        onPress={() => router.push('/roles')}
+      />
+      <Text variant="titleMedium" style={styles.mt}>
+        Miembros
+      </Text>
       {members.data.map((m) => (
         <List.Item
           key={m.id}
@@ -91,7 +94,10 @@ export default function UsuariosScreen() {
           )}
           right={() =>
             perms.has('users:manage') && m.userId !== me?.id ? (
-              <Button compact onPress={() => toggleMember(m.id, m.fullName, m.status !== 'ACTIVE')}>
+              <Button
+                compact
+                onPress={() => void toggleMember(m.id, m.fullName, m.status !== 'ACTIVE')}
+              >
                 {m.status === 'ACTIVE' ? 'Revocar' : 'Reactivar'}
               </Button>
             ) : null

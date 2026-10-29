@@ -14,9 +14,21 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { formatMoney, metricStatusLabel } from '../lib/format';
 
-export function Screen({ children, scroll = true }: { children: ReactNode; scroll?: boolean }) {
+/** Ancho máximo del contenido en pantallas grandes (computadora, tableta): evita líneas y formularios estirados. */
+export const CONTENT_MAX_WIDTH = 960;
+
+/** `narrow`: formularios cortos (inicio de sesión, registro) que en computadora se ven mejor angostos. */
+export function Screen({
+  children,
+  scroll = true,
+  narrow = false,
+}: {
+  children: ReactNode;
+  scroll?: boolean;
+  narrow?: boolean;
+}) {
   const theme = useTheme();
-  const content = <View style={styles.content}>{children}</View>;
+  const content = <View style={[styles.content, narrow && styles.narrow]}>{children}</View>;
   return (
     <SafeAreaView
       style={[styles.flex, { backgroundColor: theme.colors.background }]}
@@ -164,10 +176,19 @@ export function PhaseNotice({ phase, description }: { phase: number; description
 export const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { flexGrow: 1 },
-  content: { padding: 16, gap: 4, flexGrow: 1 },
+  content: {
+    padding: 16,
+    gap: 4,
+    flexGrow: 1,
+    width: '100%',
+    maxWidth: CONTENT_MAX_WIDTH,
+    alignSelf: 'center',
+  },
+  narrow: { maxWidth: 480 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   row: { flexDirection: 'row', alignItems: 'center' },
   metric: { flexBasis: '47%', flexGrow: 1 },
+  permissionGroup: { flexBasis: '47%', flexGrow: 1, minWidth: 260 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   mt: { marginTop: 12 },
   mtSmall: { marginTop: 4 },

@@ -8,6 +8,7 @@
     "dev": "prisma generate && nest start --watch",
     "start": "node dist/main.js",
     "typecheck": "prisma generate && tsc -p tsconfig.json --noEmit",
+    "lint": "eslint . --max-warnings=0",
     "test": "prisma generate && vitest run",
     "test:watch": "vitest",
     "db:migrate": "prisma migrate deploy",

@@ -20,7 +20,7 @@ export default function RegisterScreen() {
   });
 
   return (
-    <Screen>
+    <Screen narrow>
       <FormError message={form.formError} />
       <Field
         label="Nombre completo"
