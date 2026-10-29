@@ -13,14 +13,20 @@ export default function ResetPasswordScreen() {
   const form = useZodForm(resetPasswordSchema, { token, password: '' });
 
   const onSubmit = form.submit(async (data) => {
-    await api.request<void>('/auth/reset-password', { method: 'POST', body: { ...data, token }, anonymous: true });
+    await api.request<void>('/auth/reset-password', {
+      method: 'POST',
+      body: { ...data, token },
+      anonymous: true,
+    });
     setDone(true);
   });
 
   if (!token) {
     return (
       <Screen>
-        <Text variant="bodyMedium">El enlace está incompleto. Solicita uno nuevo desde "Olvidé mi contraseña".</Text>
+        <Text variant="bodyMedium">
+          El enlace está incompleto. Solicita uno nuevo desde "Olvidé mi contraseña".
+        </Text>
       </Screen>
     );
   }
@@ -42,8 +48,20 @@ export default function ResetPasswordScreen() {
   return (
     <Screen>
       <FormError message={form.formError ?? form.errors.token ?? null} />
-      <Field label="Nueva contraseña" value={form.values.password} onChangeText={form.set('password')} error={form.errors.password} secure autoComplete="new-password" />
-      <Button mode="contained" onPress={onSubmit} loading={form.submitting} disabled={form.submitting}>
+      <Field
+        label="Nueva contraseña"
+        value={form.values.password}
+        onChangeText={form.set('password')}
+        error={form.errors.password}
+        secure
+        autoComplete="new-password"
+      />
+      <Button
+        mode="contained"
+        onPress={onSubmit}
+        loading={form.submitting}
+        disabled={form.submitting}
+      >
         Guardar contraseña
       </Button>
     </Screen>

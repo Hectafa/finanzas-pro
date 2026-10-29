@@ -1,7 +1,16 @@
 import type { MetricDto } from '@finanzas/shared';
 import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type KeyboardTypeOptions } from 'react-native';
-import { ActivityIndicator, Banner, Card, HelperText, Icon, Text, TextInput, useTheme } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Banner,
+  Card,
+  HelperText,
+  Icon,
+  Text,
+  TextInput,
+  useTheme,
+} from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { formatMoney, metricStatusLabel } from '../lib/format';
 
@@ -9,7 +18,10 @@ export function Screen({ children, scroll = true }: { children: ReactNode; scrol
   const theme = useTheme();
   const content = <View style={styles.content}>{children}</View>;
   return (
-    <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.background }]} edges={['bottom', 'left', 'right']}>
+    <SafeAreaView
+      style={[styles.flex, { backgroundColor: theme.colors.background }]}
+      edges={['bottom', 'left', 'right']}
+    >
       {scroll ? (
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
           {content}
@@ -41,7 +53,9 @@ export function Field(props: {
         secureTextEntry={props.secure}
         keyboardType={props.keyboardType}
         autoComplete={props.autoComplete}
-        autoCapitalize={props.keyboardType === 'email-address' || props.secure ? 'none' : 'sentences'}
+        autoCapitalize={
+          props.keyboardType === 'email-address' || props.secure ? 'none' : 'sentences'
+        }
         accessibilityLabel={props.label}
       />
       <HelperText type="error" visible={!!props.error}>
@@ -72,19 +86,40 @@ export function Loading({ label = 'Cargando…' }: { label?: string }) {
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <Banner visible icon="cloud-alert" actions={onRetry ? [{ label: 'Reintentar', onPress: onRetry }] : []}>
+    <Banner
+      visible
+      icon="cloud-alert"
+      actions={onRetry ? [{ label: 'Reintentar', onPress: onRetry }] : []}
+    >
       {message}
     </Banner>
   );
 }
 
 /** Cifra del dashboard. El estado se muestra con texto e ícono además del color. */
-export function MetricCard({ title, metric, currency }: { title: string; metric: MetricDto; currency: string }) {
+export function MetricCard({
+  title,
+  metric,
+  currency,
+}: {
+  title: string;
+  metric: MetricDto;
+  currency: string;
+}) {
   const theme = useTheme();
-  const icon = metric.status === 'CONFIRMED' ? 'check-circle-outline' : metric.status === 'ESTIMATED' ? 'progress-clock' : 'minus-circle-outline';
+  const icon =
+    metric.status === 'CONFIRMED'
+      ? 'check-circle-outline'
+      : metric.status === 'ESTIMATED'
+        ? 'progress-clock'
+        : 'minus-circle-outline';
   const statusText = metricStatusLabel(metric.status);
   return (
-    <Card mode="outlined" style={styles.metric} accessibilityLabel={`${title}: ${metric.value === null ? statusText : formatMoney(metric.value, currency)}`}>
+    <Card
+      mode="outlined"
+      style={styles.metric}
+      accessibilityLabel={`${title}: ${metric.value === null ? statusText : formatMoney(metric.value, currency)}`}
+    >
       <Card.Content>
         <Text variant="labelLarge" style={{ color: theme.colors.secondary }}>
           {title}
@@ -99,7 +134,10 @@ export function MetricCard({ title, metric, currency }: { title: string; metric:
           </Text>
         </View>
         {metric.note ? (
-          <Text variant="bodySmall" style={[styles.mtSmall, { color: theme.colors.onSurfaceVariant }]}>
+          <Text
+            variant="bodySmall"
+            style={[styles.mtSmall, { color: theme.colors.onSurfaceVariant }]}
+          >
             {metric.note}
           </Text>
         ) : null}
@@ -112,7 +150,10 @@ export function MetricCard({ title, metric, currency }: { title: string; metric:
 export function PhaseNotice({ phase, description }: { phase: number; description: string }) {
   return (
     <Card mode="contained" style={styles.mtLarge}>
-      <Card.Title title={`Disponible en la Fase ${phase}`} left={(p) => <Icon {...p} source="hammer-wrench" />} />
+      <Card.Title
+        title={`Disponible en la Fase ${phase}`}
+        left={(p) => <Icon {...p} source="hammer-wrench" />}
+      />
       <Card.Content>
         <Text variant="bodyMedium">{description}</Text>
       </Card.Content>

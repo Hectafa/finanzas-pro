@@ -5,10 +5,23 @@ import { Button, Card, Chip, HelperText, List, Text } from 'react-native-paper';
 import { ErrorState, Field, FormError, Loading, Screen, styles } from '../../components/ui';
 import { ApiError } from '../../lib/api';
 import { useZodForm } from '../../lib/forms';
-import { useCurrentCompany, useInvitations, useInvite, useMembers, useRevokeInvitation, useRoles, useSetMemberStatus } from '../../lib/queries';
+import {
+  useCurrentCompany,
+  useInvitations,
+  useInvite,
+  useMembers,
+  useRevokeInvitation,
+  useRoles,
+  useSetMemberStatus,
+} from '../../lib/queries';
 import { useSession } from '../../lib/session';
 
-const STATUS_LABEL = { PENDING: 'Pendiente', ACCEPTED: 'Aceptada', REVOKED: 'Cancelada', EXPIRED: 'Vencida' } as const;
+const STATUS_LABEL = {
+  PENDING: 'Pendiente',
+  ACCEPTED: 'Aceptada',
+  REVOKED: 'Cancelada',
+  EXPIRED: 'Vencida',
+} as const;
 
 export default function UsuariosScreen() {
   const company = useCurrentCompany();
@@ -34,22 +47,33 @@ export default function UsuariosScreen() {
   });
 
   const toggleMember = (id: string, name: string, active: boolean) => {
-    Alert.alert(active ? 'Reactivar acceso' : 'Revocar acceso', `${active ? 'Reactivar' : 'Revocar'} el acceso de ${name}?`, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: active ? 'Reactivar' : 'Revocar',
-        style: active ? 'default' : 'destructive',
-        onPress: () =>
-          setStatus.mutate(
-            { id, active },
-            { onError: (e) => Alert.alert('No fue posible', e instanceof ApiError ? e.message : 'Intenta de nuevo') },
-          ),
-      },
-    ]);
+    Alert.alert(
+      active ? 'Reactivar acceso' : 'Revocar acceso',
+      `${active ? 'Reactivar' : 'Revocar'} el acceso de ${name}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: active ? 'Reactivar' : 'Revocar',
+          style: active ? 'default' : 'destructive',
+          onPress: () =>
+            setStatus.mutate(
+              { id, active },
+              {
+                onError: (e) =>
+                  Alert.alert(
+                    'No fue posible',
+                    e instanceof ApiError ? e.message : 'Intenta de nuevo',
+                  ),
+              },
+            ),
+        },
+      ],
+    );
   };
 
   if (company.isPending || members.isPending) return <Loading />;
-  if (members.isError) return <ErrorState message={members.error.message} onRetry={() => void members.refetch()} />;
+  if (members.isError)
+    return <ErrorState message={members.error.message} onRetry={() => void members.refetch()} />;
 
   return (
     <Screen>
@@ -59,7 +83,12 @@ export default function UsuariosScreen() {
           key={m.id}
           title={`${m.fullName}${m.userId === me?.id ? ' (tú)' : ''}`}
           description={`${m.email} · ${m.role.name}${m.status === 'REVOKED' ? ' · Acceso revocado' : ''}`}
-          left={(p) => <List.Icon {...p} icon={m.status === 'ACTIVE' ? 'account-check-outline' : 'account-cancel-outline'} />}
+          left={(p) => (
+            <List.Icon
+              {...p}
+              icon={m.status === 'ACTIVE' ? 'account-check-outline' : 'account-cancel-outline'}
+            />
+          )}
           right={() =>
             perms.has('users:manage') && m.userId !== me?.id ? (
               <Button compact onPress={() => toggleMember(m.id, m.fullName, m.status !== 'ACTIVE')}>
@@ -72,10 +101,20 @@ export default function UsuariosScreen() {
 
       {perms.has('users:invite') ? (
         <Card mode="outlined" style={styles.mt}>
-          <Card.Title title="Invitar a una persona" subtitle="Recibirá un enlace por correo, válido 7 días" />
+          <Card.Title
+            title="Invitar a una persona"
+            subtitle="Recibirá un enlace por correo, válido 7 días"
+          />
           <Card.Content>
             <FormError message={form.formError ?? (sent ? `Invitación enviada a ${sent}` : null)} />
-            <Field label="Correo" value={form.values.email} onChangeText={form.set('email')} error={form.errors.email} keyboardType="email-address" autoComplete="email" />
+            <Field
+              label="Correo"
+              value={form.values.email}
+              onChangeText={form.set('email')}
+              error={form.errors.email}
+              keyboardType="email-address"
+              autoComplete="email"
+            />
             <Text variant="labelLarge">Rol</Text>
             <View style={[styles.grid, { marginVertical: 8, gap: 8 }]}>
               {grantable.map((r) => (
@@ -94,7 +133,12 @@ export default function UsuariosScreen() {
               ))}
             </View>
             {form.errors.roleId ? <HelperText type="error">Elige un rol</HelperText> : null}
-            <Button mode="contained" onPress={onInvite} loading={form.submitting} disabled={form.submitting}>
+            <Button
+              mode="contained"
+              onPress={onInvite}
+              loading={form.submitting}
+              disabled={form.submitting}
+            >
               Enviar invitación
             </Button>
           </Card.Content>
@@ -104,7 +148,9 @@ export default function UsuariosScreen() {
       <Text variant="titleMedium" style={styles.mtLarge}>
         Invitaciones
       </Text>
-      {(invitations.data ?? []).length === 0 ? <Text variant="bodySmall">Sin invitaciones.</Text> : null}
+      {(invitations.data ?? []).length === 0 ? (
+        <Text variant="bodySmall">Sin invitaciones.</Text>
+      ) : null}
       {(invitations.data ?? []).map((i) => (
         <List.Item
           key={i.id}

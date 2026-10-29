@@ -22,7 +22,10 @@ export function useMe() {
 }
 
 export function useCompanies() {
-  return useQuery({ queryKey: ['companies'], queryFn: () => api.request<CompanySummaryDto[]>('/companies') });
+  return useQuery({
+    queryKey: ['companies'],
+    queryFn: () => api.request<CompanySummaryDto[]>('/companies'),
+  });
 }
 
 export function useCurrentCompany() {
@@ -38,7 +41,8 @@ export function useDashboard(period: PeriodPreset) {
   const companyId = useCompanyKey();
   return useQuery({
     queryKey: ['dashboard', companyId, period],
-    queryFn: () => api.request<DashboardSummaryDto>('/dashboard/summary', { company: true, query: { period } }),
+    queryFn: () =>
+      api.request<DashboardSummaryDto>('/dashboard/summary', { company: true, query: { period } }),
     enabled: !!companyId,
   });
 }
@@ -71,13 +75,17 @@ export function useRoles(enabled: boolean) {
 }
 
 export function useSessions() {
-  return useQuery({ queryKey: ['sessions'], queryFn: () => api.request<SessionDto[]>('/auth/sessions') });
+  return useQuery({
+    queryKey: ['sessions'],
+    queryFn: () => api.request<SessionDto[]>('/auth/sessions'),
+  });
 }
 
 export function useCreateCompany() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateCompanyInput) => api.request<CompanySummaryDto>('/companies', { method: 'POST', body: input }),
+    mutationFn: (input: CreateCompanyInput) =>
+      api.request<CompanySummaryDto>('/companies', { method: 'POST', body: input }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['companies'] }),
   });
 }
@@ -94,7 +102,8 @@ export function useInvite() {
 export function useRevokeInvitation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => api.request<void>(`/invitations/${id}/revoke`, { method: 'POST', company: true }),
+    mutationFn: (id: string) =>
+      api.request<void>(`/invitations/${id}/revoke`, { method: 'POST', company: true }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['invitations'] }),
   });
 }
@@ -103,7 +112,10 @@ export function useSetMemberStatus() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) =>
-      api.request<void>(`/members/${id}/${active ? 'reactivate' : 'revoke'}`, { method: 'POST', company: true }),
+      api.request<void>(`/members/${id}/${active ? 'reactivate' : 'revoke'}`, {
+        method: 'POST',
+        company: true,
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['members'] }),
   });
 }

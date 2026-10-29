@@ -44,7 +44,12 @@ export const useSession = create<SessionState>((set) => ({
 
   signIn: async ({ user, tokens }) => {
     await SecureStore.setItemAsync(REFRESH_KEY, tokens.refreshToken);
-    set({ status: 'signedIn', user, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
+    set({
+      status: 'signedIn',
+      user,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    });
   },
 
   setTokens: async (tokens) => {
@@ -61,7 +66,16 @@ export const useSession = create<SessionState>((set) => ({
   },
 
   signOut: async () => {
-    await Promise.all([SecureStore.deleteItemAsync(REFRESH_KEY), SecureStore.deleteItemAsync(COMPANY_KEY)]);
-    set({ status: 'signedOut', user: null, accessToken: null, refreshToken: null, companyId: null });
+    await Promise.all([
+      SecureStore.deleteItemAsync(REFRESH_KEY),
+      SecureStore.deleteItemAsync(COMPANY_KEY),
+    ]);
+    set({
+      status: 'signedOut',
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      companyId: null,
+    });
   },
 }));

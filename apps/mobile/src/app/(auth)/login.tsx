@@ -28,9 +28,28 @@ export default function LoginScreen() {
         <Text variant="bodyLarge">Controla las finanzas de tu negocio desde tu teléfono.</Text>
       </View>
       <FormError message={form.formError} />
-      <Field label="Correo" value={form.values.email} onChangeText={form.set('email')} error={form.errors.email} keyboardType="email-address" autoComplete="email" />
-      <Field label="Contraseña" value={form.values.password} onChangeText={form.set('password')} error={form.errors.password} secure autoComplete="password" />
-      <Button mode="contained" onPress={onSubmit} loading={form.submitting} disabled={form.submitting}>
+      <Field
+        label="Correo"
+        value={form.values.email}
+        onChangeText={form.set('email')}
+        error={form.errors.email}
+        keyboardType="email-address"
+        autoComplete="email"
+      />
+      <Field
+        label="Contraseña"
+        value={form.values.password}
+        onChangeText={form.set('password')}
+        error={form.errors.password}
+        secure
+        autoComplete="password"
+      />
+      <Button
+        mode="contained"
+        onPress={onSubmit}
+        loading={form.submitting}
+        disabled={form.submitting}
+      >
         Iniciar sesión
       </Button>
       <Link href="/forgot-password" asChild>

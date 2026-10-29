@@ -10,7 +10,11 @@ export default function ForgotPasswordScreen() {
   const form = useZodForm(forgotPasswordSchema, { email: '' });
 
   const onSubmit = form.submit(async (data) => {
-    const res = await api.request<{ message: string }>('/auth/forgot-password', { method: 'POST', body: data, anonymous: true });
+    const res = await api.request<{ message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: data,
+      anonymous: true,
+    });
     setSentMessage(res.message);
   });
 
@@ -31,8 +35,20 @@ export default function ForgotPasswordScreen() {
         Te enviaremos un enlace para crear una nueva contraseña.
       </Text>
       <FormError message={form.formError} />
-      <Field label="Correo" value={form.values.email} onChangeText={form.set('email')} error={form.errors.email} keyboardType="email-address" autoComplete="email" />
-      <Button mode="contained" onPress={onSubmit} loading={form.submitting} disabled={form.submitting}>
+      <Field
+        label="Correo"
+        value={form.values.email}
+        onChangeText={form.set('email')}
+        error={form.errors.email}
+        keyboardType="email-address"
+        autoComplete="email"
+      />
+      <Button
+        mode="contained"
+        onPress={onSubmit}
+        loading={form.submitting}
+        disabled={form.submitting}
+      >
         Enviar enlace
       </Button>
     </Screen>

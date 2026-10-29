@@ -42,20 +42,20 @@ pnpm mobile                                   # escanea el QR con Expo Go
 
 `EXPO_PUBLIC_API_URL` según dónde corre la app:
 
-| Dónde | Valor |
-|---|---|
-| Emulador de Android | `http://10.0.2.2:3000` |
-| Simulador de iOS | `http://localhost:3000` |
-| Teléfono físico | `http://<IP de tu PC en la red local>:3000` (permite el puerto 3000 en el Firewall de Windows) |
+| Dónde               | Valor                                                                                          |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| Emulador de Android | `http://10.0.2.2:3000`                                                                         |
+| Simulador de iOS    | `http://localhost:3000`                                                                        |
+| Teléfono físico     | `http://<IP de tu PC en la red local>:3000` (permite el puerto 3000 en el Firewall de Windows) |
 
 ### Usuarios de demostración
 
 Creados por `db:seed:demo` en la empresa **"Cafetería Demo (DATOS DE PRUEBA)"** (`is_demo = true`):
 
-| Correo | Rol | Contraseña |
-|---|---|---|
+| Correo                              | Rol         | Contraseña                               |
+| ----------------------------------- | ----------- | ---------------------------------------- |
 | `propietario@demo.finanzaspro.test` | Propietario | `demo-finanzas-2026` (o `DEMO_PASSWORD`) |
-| `empleado@demo.finanzaspro.test` | Empleado | igual |
+| `empleado@demo.finanzaspro.test`    | Empleado    | igual                                    |
 
 Solo para desarrollo; el seed se niega a crear datos demo con `NODE_ENV=production`.
 

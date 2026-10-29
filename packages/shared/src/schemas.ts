@@ -18,7 +18,11 @@ const COMMON_PASSWORDS = new Set([
   'aaaaaaaaaa',
 ]);
 
-export const emailSchema = z.string().trim().toLowerCase().pipe(z.email('Correo inválido').max(254));
+export const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .pipe(z.email('Correo inválido').max(254));
 
 export const passwordSchema = z
   .string()

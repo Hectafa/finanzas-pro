@@ -28,12 +28,16 @@ export class InvitationsService {
     const { invitation, companyName, inviterName } = await this.db.tenant(t, async (tx) => {
       const role = await this.members.loadAssignableRole(tx, t, input.roleId);
 
-      const existingUser = await tx.user.findUnique({ where: { email: input.email }, select: { id: true } });
+      const existingUser = await tx.user.findUnique({
+        where: { email: input.email },
+        select: { id: true },
+      });
       if (existingUser) {
         const membership = await tx.companyMembership.findUnique({
           where: { companyId_userId: { companyId: t.companyId, userId: existingUser.id } },
         });
-        if (membership?.status === 'ACTIVE') throw Errors.conflict('ALREADY_MEMBER', 'Esa persona ya pertenece a la empresa');
+        if (membership?.status === 'ACTIVE')
+          throw Errors.conflict('ALREADY_MEMBER', 'Esa persona ya pertenece a la empresa');
       }
 
       // Una sola invitación pendiente por correo: la nueva reemplaza a la anterior.
@@ -62,8 +66,14 @@ export class InvitationsService {
         data: { email: input.email, roleId: role.id },
         requestId: t.requestId,
       });
-      const company = await tx.company.findUniqueOrThrow({ where: { id: t.companyId }, select: { name: true } });
-      const inviter = await tx.user.findUniqueOrThrow({ where: { id: t.userId }, select: { fullName: true } });
+      const company = await tx.company.findUniqueOrThrow({
+        where: { id: t.companyId },
+        select: { name: true },
+      });
+      const inviter = await tx.user.findUniqueOrThrow({
+        where: { id: t.userId },
+        select: { fullName: true },
+      });
       return { invitation, companyName: company.name, inviterName: inviter.fullName };
     });
 
@@ -80,7 +90,12 @@ export class InvitationsService {
 
   async list(t: TenantContext): Promise<InvitationDto[]> {
     const rows = await this.db.tenant(t, (tx) =>
-      tx.invitation.findMany({ where: { companyId: t.companyId }, include: { role: true }, orderBy: { createdAt: 'desc' }, take: 100 }),
+      tx.invitation.findMany({
+        where: { companyId: t.companyId },
+        include: { role: true },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+      }),
     );
     return rows.map(toInvitationDto);
   }
@@ -115,7 +130,12 @@ export class InvitationsService {
         where: { tokenHash: sha256Hex(token) },
         include: { company: true, role: true },
       });
-      if (!invitation || invitation.status !== 'PENDING' || invitation.expiresAt <= now || invitation.role.archivedAt) {
+      if (
+        !invitation ||
+        invitation.status !== 'PENDING' ||
+        invitation.expiresAt <= now ||
+        invitation.role.archivedAt
+      ) {
         throw Errors.badRequest('INVITATION_INVALID', 'La invitación no es válida o ya expiró');
       }
       const user = await tx.user.findUniqueOrThrow({ where: { id: auth.userId } });
@@ -126,20 +146,34 @@ export class InvitationsService {
         where: { id: invitation.id, status: 'PENDING' },
         data: { status: 'ACCEPTED', acceptedBy: user.id, acceptedAt: now },
       });
-      if (claimed.count === 0) throw Errors.badRequest('INVITATION_INVALID', 'La invitación no es válida o ya expiró');
+      if (claimed.count === 0)
+        throw Errors.badRequest('INVITATION_INVALID', 'La invitación no es válida o ya expiró');
 
       const existing = await tx.companyMembership.findUnique({
         where: { companyId_userId: { companyId: invitation.companyId, userId: user.id } },
       });
-      if (existing?.status === 'ACTIVE') throw Errors.conflict('ALREADY_MEMBER', 'Ya perteneces a esta empresa');
+      if (existing?.status === 'ACTIVE')
+        throw Errors.conflict('ALREADY_MEMBER', 'Ya perteneces a esta empresa');
       if (existing) {
         await tx.companyMembership.update({
           where: { id: existing.id },
-          data: { status: 'ACTIVE', roleId: invitation.roleId, revokedAt: null, updatedBy: user.id, version: { increment: 1 } },
+          data: {
+            status: 'ACTIVE',
+            roleId: invitation.roleId,
+            revokedAt: null,
+            updatedBy: user.id,
+            version: { increment: 1 },
+          },
         });
       } else {
         await tx.companyMembership.create({
-          data: { id: uuidv7(), companyId: invitation.companyId, userId: user.id, roleId: invitation.roleId, createdBy: invitation.invitedBy },
+          data: {
+            id: uuidv7(),
+            companyId: invitation.companyId,
+            userId: user.id,
+            roleId: invitation.roleId,
+            createdBy: invitation.invitedBy,
+          },
         });
       }
       await this.audit.record(tx, {

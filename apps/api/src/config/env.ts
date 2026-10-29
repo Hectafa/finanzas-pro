@@ -6,7 +6,9 @@ export const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-    LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+    LOG_LEVEL: z
+      .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+      .default('info'),
     DATABASE_URL: z.string().startsWith('postgres'),
     JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET debe tener al menos 32 caracteres'),
     ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
@@ -19,17 +21,30 @@ export const envSchema = z
     CORS_ORIGINS: z
       .string()
       .default('')
-      .transform((v) => v.split(',').map((s) => s.trim()).filter(Boolean)),
+      .transform((v) =>
+        v
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+      ),
     DOCS_ENABLED: bool.default(true),
     THROTTLE_LIMIT: z.coerce.number().int().min(1).default(120),
     AUTH_THROTTLE_LIMIT: z.coerce.number().int().min(1).default(10),
   })
   .superRefine((env, ctx) => {
     if (env.MAIL_DRIVER === 'resend' && !env.RESEND_API_KEY) {
-      ctx.addIssue({ code: 'custom', path: ['RESEND_API_KEY'], message: 'Requerido con MAIL_DRIVER=resend' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['RESEND_API_KEY'],
+        message: 'Requerido con MAIL_DRIVER=resend',
+      });
     }
     if (env.NODE_ENV === 'production' && env.MAIL_DRIVER !== 'resend') {
-      ctx.addIssue({ code: 'custom', path: ['MAIL_DRIVER'], message: 'En producción solo se admite resend' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['MAIL_DRIVER'],
+        message: 'En producción solo se admite resend',
+      });
     }
   });
 

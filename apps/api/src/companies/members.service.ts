@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { canGrant, isPermission, type CreateRoleInput, type MemberDto, type RoleDto } from '@finanzas/shared';
+import {
+  canGrant,
+  isPermission,
+  type CreateRoleInput,
+  type MemberDto,
+  type RoleDto,
+} from '@finanzas/shared';
 import { AuditService } from '../audit/audit.service';
 import { Errors } from '../common/errors';
 import type { TenantContext } from '../common/request-context';
@@ -7,7 +13,8 @@ import { DbService, type Tx } from '../db/db.service';
 import { uuidv7 } from '../db/ids';
 import { roleRef } from './mappers';
 
-const permissionKeys = (role: { permissions: { permissionKey: string }[] }) => role.permissions.map((p) => p.permissionKey);
+const permissionKeys = (role: { permissions: { permissionKey: string }[] }) =>
+  role.permissions.map((p) => p.permissionKey);
 
 /**
  * Miembros y roles de una empresa. Reglas anti-escalamiento:
@@ -67,7 +74,11 @@ export class MembersService {
     });
   }
 
-  async setStatus(t: TenantContext, membershipId: string, status: 'ACTIVE' | 'REVOKED'): Promise<void> {
+  async setStatus(
+    t: TenantContext,
+    membershipId: string,
+    status: 'ACTIVE' | 'REVOKED',
+  ): Promise<void> {
     await this.db.tenant(t, async (tx) => {
       const target = await this.loadTarget(tx, t, membershipId);
       if (target.userId === t.userId) throw Errors.forbidden('No puedes cambiar tu propio acceso');
@@ -117,7 +128,8 @@ export class MembersService {
   async createRole(t: TenantContext, input: CreateRoleInput): Promise<RoleDto> {
     const permissions = [...new Set(input.permissions)];
     const invalid = permissions.filter((p) => !isPermission(p));
-    if (invalid.length) throw Errors.badRequest('INVALID_PERMISSION', `Permisos desconocidos: ${invalid.join(', ')}`);
+    if (invalid.length)
+      throw Errors.badRequest('INVALID_PERMISSION', `Permisos desconocidos: ${invalid.join(', ')}`);
     if (!canGrant(t.permissions, permissions)) {
       throw Errors.forbidden('No puedes crear un rol con permisos que tú no tienes');
     }
@@ -132,7 +144,9 @@ export class MembersService {
           createdBy: t.userId,
         },
       });
-      await tx.rolePermission.createMany({ data: permissions.map((permissionKey) => ({ roleId: role.id, permissionKey })) });
+      await tx.rolePermission.createMany({
+        data: permissions.map((permissionKey) => ({ roleId: role.id, permissionKey })),
+      });
       await this.audit.record(tx, {
         companyId: t.companyId,
         actorUserId: t.userId,
@@ -156,7 +170,11 @@ export class MembersService {
   /** Rol visible para la empresa y que el actor tiene derecho a otorgar. */
   async loadAssignableRole(tx: Tx, t: TenantContext, roleId: string) {
     const role = await tx.role.findFirst({
-      where: { id: roleId, archivedAt: null, OR: [{ companyId: null }, { companyId: t.companyId }] },
+      where: {
+        id: roleId,
+        archivedAt: null,
+        OR: [{ companyId: null }, { companyId: t.companyId }],
+      },
       include: { permissions: true },
     });
     if (!role) throw Errors.notFound('Rol no encontrado');
@@ -179,14 +197,21 @@ export class MembersService {
   }
 
   /** Bloquea las membresías de Propietario para que dos cambios simultáneos no dejen la empresa sin dueño. */
-  private async ensureAnotherOwner(tx: Tx, companyId: string, excludingMembershipId: string): Promise<void> {
+  private async ensureAnotherOwner(
+    tx: Tx,
+    companyId: string,
+    excludingMembershipId: string,
+  ): Promise<void> {
     const owners = await tx.$queryRaw<{ id: string }[]>`
       SELECT m.id FROM company_memberships m
       JOIN roles r ON r.id = m.role_id
       WHERE m.company_id = ${companyId}::uuid AND m.status = 'ACTIVE' AND r.key = 'OWNER'
       FOR UPDATE OF m`;
     if (!owners.some((o) => o.id !== excludingMembershipId)) {
-      throw Errors.conflict('LAST_OWNER', 'La empresa debe conservar al menos un Propietario activo');
+      throw Errors.conflict(
+        'LAST_OWNER',
+        'La empresa debe conservar al menos un Propietario activo',
+      );
     }
   }
 }

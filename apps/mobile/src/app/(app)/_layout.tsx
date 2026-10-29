@@ -46,7 +46,10 @@ export default function AppLayout() {
   return (
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="select-company" options={{ title: 'Tus empresas', headerBackVisible: valid }} />
+      <Stack.Screen
+        name="select-company"
+        options={{ title: 'Tus empresas', headerBackVisible: valid }}
+      />
       <Stack.Screen name="usuarios" options={{ title: 'Usuarios y accesos' }} />
       <Stack.Screen name="sesiones" options={{ title: 'Sesiones activas' }} />
     </Stack>

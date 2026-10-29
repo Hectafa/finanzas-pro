@@ -5,7 +5,8 @@ import { api } from '../../lib/client';
 import { useRevokeSession, useSessions } from '../../lib/queries';
 import { useSession } from '../../lib/session';
 
-const fmt = (iso: string) => new Date(iso).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
+const fmt = (iso: string) =>
+  new Date(iso).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
 
 export default function SesionesScreen() {
   const sessions = useSessions();
@@ -13,24 +14,31 @@ export default function SesionesScreen() {
   const signOut = useSession((s) => s.signOut);
 
   const logoutAll = () =>
-    Alert.alert('Cerrar todas las sesiones', 'Se cerrará la sesión en todos tus dispositivos, incluido este.', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Cerrar todas',
-        style: 'destructive',
-        onPress: async () => {
-          await api.request<void>('/auth/logout-all', { method: 'POST' }).catch(() => undefined);
-          await signOut();
+    Alert.alert(
+      'Cerrar todas las sesiones',
+      'Se cerrará la sesión en todos tus dispositivos, incluido este.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar todas',
+          style: 'destructive',
+          onPress: async () => {
+            await api.request<void>('/auth/logout-all', { method: 'POST' }).catch(() => undefined);
+            await signOut();
+          },
         },
-      },
-    ]);
+      ],
+    );
 
   if (sessions.isPending) return <Loading />;
-  if (sessions.isError) return <ErrorState message={sessions.error.message} onRetry={() => void sessions.refetch()} />;
+  if (sessions.isError)
+    return <ErrorState message={sessions.error.message} onRetry={() => void sessions.refetch()} />;
 
   return (
     <Screen>
-      <Text variant="bodyMedium">Si no reconoces un dispositivo, cierra su sesión y cambia tu contraseña.</Text>
+      <Text variant="bodyMedium">
+        Si no reconoces un dispositivo, cierra su sesión y cambia tu contraseña.
+      </Text>
       {sessions.data.map((s) => (
         <List.Item
           key={s.id}

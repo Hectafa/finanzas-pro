@@ -31,14 +31,18 @@ export default function AcceptInviteScreen() {
     else void SecureStore.getItemAsync(PENDING_INVITE_KEY).then(setToken);
   }, [params.token]);
 
-  if (status === 'signedOut') return <Redirect href={{ pathname: '/login', params: { returnTo: 'accept-invite' } }} />;
+  if (status === 'signedOut')
+    return <Redirect href={{ pathname: '/login', params: { returnTo: 'accept-invite' } }} />;
   if (!token) return <Loading label="Buscando invitación…" />;
 
   const accept = async () => {
     setBusy(true);
     setError(null);
     try {
-      const company = await api.request<CompanySummaryDto>('/invitations/accept', { method: 'POST', body: { token } });
+      const company = await api.request<CompanySummaryDto>('/invitations/accept', {
+        method: 'POST',
+        body: { token },
+      });
       await SecureStore.deleteItemAsync(PENDING_INVITE_KEY);
       await setCompany(company.id);
       await qc.invalidateQueries({ queryKey: ['companies'] });

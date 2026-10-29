@@ -22,13 +22,39 @@ export default function RegisterScreen() {
   return (
     <Screen>
       <FormError message={form.formError} />
-      <Field label="Nombre completo" value={form.values.fullName} onChangeText={form.set('fullName')} error={form.errors.fullName} autoComplete="name" />
-      <Field label="Correo" value={form.values.email} onChangeText={form.set('email')} error={form.errors.email} keyboardType="email-address" autoComplete="email" />
-      <Field label="Contraseña" value={form.values.password} onChangeText={form.set('password')} error={form.errors.password} secure autoComplete="new-password" />
+      <Field
+        label="Nombre completo"
+        value={form.values.fullName}
+        onChangeText={form.set('fullName')}
+        error={form.errors.fullName}
+        autoComplete="name"
+      />
+      <Field
+        label="Correo"
+        value={form.values.email}
+        onChangeText={form.set('email')}
+        error={form.errors.email}
+        keyboardType="email-address"
+        autoComplete="email"
+      />
+      <Field
+        label="Contraseña"
+        value={form.values.password}
+        onChangeText={form.set('password')}
+        error={form.errors.password}
+        secure
+        autoComplete="new-password"
+      />
       <Text variant="bodySmall" style={{ marginBottom: 12 }}>
         Mínimo 10 caracteres. Usa una frase que puedas recordar.
       </Text>
-      <Button mode="contained" onPress={onSubmit} loading={form.submitting} disabled={form.submitting} style={styles.mt}>
+      <Button
+        mode="contained"
+        onPress={onSubmit}
+        loading={form.submitting}
+        disabled={form.submitting}
+        style={styles.mt}
+      >
         Crear cuenta
       </Button>
     </Screen>
