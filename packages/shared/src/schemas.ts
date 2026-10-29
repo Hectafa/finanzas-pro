@@ -18,7 +18,11 @@ const COMMON_PASSWORDS = new Set([
   'aaaaaaaaaa',
 ]);
 
-export const emailSchema = z.string().trim().toLowerCase().pipe(z.email('Correo inválido').max(254));
+export const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .pipe(z.email('Correo inválido').max(254));
 
 export const passwordSchema = z
   .string()
@@ -101,9 +105,26 @@ export type AcceptInvitationInput = z.infer<typeof acceptInvitationSchema>;
 export const changeMemberRoleSchema = z.object({ roleId: z.uuid() });
 export type ChangeMemberRoleInput = z.infer<typeof changeMemberRoleSchema>;
 
+const roleNameSchema = z.string().trim().min(1, 'Requerido').max(80);
+const rolePermissionsSchema = z.array(z.string()).min(1, 'Elige al menos un permiso').max(100);
+
 export const createRoleSchema = z.object({
-  name: nameSchema,
+  name: roleNameSchema,
   description: z.string().trim().max(300).optional(),
-  permissions: z.array(z.string()).min(1).max(100),
+  permissions: rolePermissionsSchema,
 });
 export type CreateRoleInput = z.infer<typeof createRoleSchema>;
+
+/** `version` es la que el cliente leyó: si otro usuario editó el rol entretanto, la API responde 409. */
+export const updateRoleSchema = z
+  .object({
+    version: z.number().int().min(1),
+    name: roleNameSchema.optional(),
+    description: z.string().trim().max(300).nullable().optional(),
+    permissions: rolePermissionsSchema.optional(),
+  })
+  .refine(
+    (v) => v.name !== undefined || v.description !== undefined || v.permissions !== undefined,
+    'No hay cambios',
+  );
+export type UpdateRoleInput = z.infer<typeof updateRoleSchema>;

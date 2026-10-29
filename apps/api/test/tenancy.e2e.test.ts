@@ -1,6 +1,17 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { uuidv7 } from '../src/db/ids';
-import { addMember, bearer, createCompany, createTestContext, inCompany, registerUser, resetDatabase, systemRole, type TestContext, type TestUser } from './helpers';
+import {
+  addMember,
+  bearer,
+  createCompany,
+  createTestContext,
+  inCompany,
+  registerUser,
+  resetDatabase,
+  systemRole,
+  type TestContext,
+  type TestUser,
+} from './helpers';
 
 let ctx: TestContext;
 let ana: TestUser;
@@ -32,6 +43,8 @@ const companyRoutes: Array<[method: 'get' | 'post' | 'patch', path: string, body
   ['post', `/v1/members/${uuidv7()}/reactivate`],
   ['get', '/v1/roles'],
   ['post', '/v1/roles', { name: 'X', permissions: ['dashboard:view'] }],
+  ['patch', `/v1/roles/${uuidv7()}`, { version: 1, name: 'Hackeado' }],
+  ['post', `/v1/roles/${uuidv7()}/archive`],
   ['get', '/v1/invitations'],
   ['post', '/v1/invitations', { email: 'x@y.mx', roleId: uuidv7() }],
   ['post', `/v1/invitations/${uuidv7()}/revoke`],
@@ -41,11 +54,18 @@ const companyRoutes: Array<[method: 'get' | 'post' | 'patch', path: string, body
 ];
 
 describe('aislamiento entre empresas (API)', () => {
-  it.each(companyRoutes)('%s %s responde 404 a un usuario de otra empresa', async (method, path, body) => {
-    const res = await ctx.http()[method](path).set(inCompany(beto, companyA)).send(body ?? {});
-    expect(res.status).toBe(404);
-    expect(res.body.error.code).toBe('NOT_FOUND');
-  });
+  it.each(companyRoutes)(
+    '%s %s responde 404 a un usuario de otra empresa',
+    async (method, path, body) => {
+      const res = await ctx
+        .http()
+        [method](path)
+        .set(inCompany(beto, companyA))
+        .send(body ?? {});
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('NOT_FOUND');
+    },
+  );
 
   it('cada usuario solo lista sus propias empresas', async () => {
     const res = await ctx.http().get('/v1/companies').set(bearer(beto));
@@ -54,30 +74,78 @@ describe('aislamiento entre empresas (API)', () => {
 
   it('no se puede revocar ni cambiar el rol de un miembro de otra empresa usando la empresa propia', async () => {
     const employee = await addMember(ctx, ana, companyA, 'emp@empresa-a.mx', 'EMPLOYEE');
-    const membershipA = await ctx.owner.companyMembership.findFirstOrThrow({ where: { userId: employee.id, companyId: companyA } });
+    const membershipA = await ctx.owner.companyMembership.findFirstOrThrow({
+      where: { userId: employee.id, companyId: companyA },
+    });
     const ownerRoleB = await systemRole(ctx, beto, companyB, 'OWNER');
 
-    const revoke = await ctx.http().post(`/v1/members/${membershipA.id}/revoke`).set(inCompany(beto, companyB));
+    const revoke = await ctx
+      .http()
+      .post(`/v1/members/${membershipA.id}/revoke`)
+      .set(inCompany(beto, companyB));
     expect(revoke.status).toBe(404);
-    const role = await ctx.http().patch(`/v1/members/${membershipA.id}/role`).set(inCompany(beto, companyB)).send({ roleId: ownerRoleB.id });
+    const role = await ctx
+      .http()
+      .patch(`/v1/members/${membershipA.id}/role`)
+      .set(inCompany(beto, companyB))
+      .send({ roleId: ownerRoleB.id });
     expect(role.status).toBe(404);
 
-    const unchanged = await ctx.owner.companyMembership.findUniqueOrThrow({ where: { id: membershipA.id } });
+    const unchanged = await ctx.owner.companyMembership.findUniqueOrThrow({
+      where: { id: membershipA.id },
+    });
     expect(unchanged.status).toBe('ACTIVE');
   });
 
   it('un rol personalizado de otra empresa no puede asignarse', async () => {
-    const custom = await ctx.http().post('/v1/roles').set(inCompany(beto, companyB)).send({ name: 'Cajero B', permissions: ['sales:create'] });
+    const custom = await ctx
+      .http()
+      .post('/v1/roles')
+      .set(inCompany(beto, companyB))
+      .send({ name: 'Cajero B', permissions: ['sales:create'] });
     expect(custom.status).toBe(201);
-    const res = await ctx.http().post('/v1/invitations').set(inCompany(ana, companyA)).send({ email: 'x@y.mx', roleId: custom.body.id });
+    const res = await ctx
+      .http()
+      .post('/v1/invitations')
+      .set(inCompany(ana, companyA))
+      .send({ email: 'x@y.mx', roleId: custom.body.id });
     expect(res.status).toBe(404);
+  });
+
+  it('un rol personalizado de otra empresa no puede editarse ni archivarse desde la empresa propia', async () => {
+    const custom = await ctx
+      .http()
+      .post('/v1/roles')
+      .set(inCompany(beto, companyB))
+      .send({ name: 'Cajero B', permissions: ['sales:create'] });
+    const edit = await ctx
+      .http()
+      .patch(`/v1/roles/${custom.body.id}`)
+      .set(inCompany(ana, companyA))
+      .send({ version: 1, permissions: ['users:manage'] });
+    expect(edit.status).toBe(404);
+    const archive = await ctx
+      .http()
+      .post(`/v1/roles/${custom.body.id}/archive`)
+      .set(inCompany(ana, companyA));
+    expect(archive.status).toBe(404);
+
+    const unchanged = await ctx.owner.role.findUniqueOrThrow({
+      where: { id: custom.body.id },
+      include: { permissions: true },
+    });
+    expect(unchanged.archivedAt).toBeNull();
+    expect(unchanged.permissions.map((p) => p.permissionKey)).toEqual(['sales:create']);
   });
 
   it('exige un X-Company-Id válido', async () => {
     const missing = await ctx.http().get('/v1/members').set(bearer(ana));
     expect(missing.status).toBe(400);
     expect(missing.body.error.code).toBe('COMPANY_REQUIRED');
-    const malformed = await ctx.http().get('/v1/members').set({ ...bearer(ana), 'X-Company-Id': "1' OR '1'='1" });
+    const malformed = await ctx
+      .http()
+      .get('/v1/members')
+      .set({ ...bearer(ana), 'X-Company-Id': "1' OR '1'='1" });
     expect(malformed.status).toBe(400);
   });
 });
@@ -110,7 +178,9 @@ describe('aislamiento entre empresas (seguridad por fila en PostgreSQL)', () => 
   it('no permite insertar ni mover filas hacia otra empresa', async () => {
     await expect(
       ctx.db.tenant({ companyId: companyA, userId: ana.id }, (tx) =>
-        tx.branch.create({ data: { id: uuidv7(), companyId: companyB, name: 'Intrusa', createdBy: ana.id } }),
+        tx.branch.create({
+          data: { id: uuidv7(), companyId: companyB, name: 'Intrusa', createdBy: ana.id },
+        }),
       ),
     ).rejects.toThrow();
 
@@ -124,7 +194,9 @@ describe('aislamiento entre empresas (seguridad por fila en PostgreSQL)', () => 
 
   it('la bitácora no puede modificarse ni borrarse con el rol de la API', async () => {
     await expect(
-      ctx.db.tenant({ companyId: companyA, userId: ana.id }, (tx) => tx.auditLog.updateMany({ data: { action: 'alterado' } })),
+      ctx.db.tenant({ companyId: companyA, userId: ana.id }, (tx) =>
+        tx.auditLog.updateMany({ data: { action: 'alterado' } }),
+      ),
     ).rejects.toThrow();
     await expect(
       ctx.db.tenant({ companyId: companyA, userId: ana.id }, (tx) => tx.auditLog.deleteMany()),
@@ -133,7 +205,9 @@ describe('aislamiento entre empresas (seguridad por fila en PostgreSQL)', () => 
 
   it('el catálogo de permisos es de solo lectura para la API', async () => {
     await expect(
-      ctx.db.system((tx) => tx.permission.create({ data: { key: 'super:admin', module: 'super', action: 'admin' } })),
+      ctx.db.system((tx) =>
+        tx.permission.create({ data: { key: 'super:admin', module: 'super', action: 'admin' } }),
+      ),
     ).rejects.toThrow();
   });
 });

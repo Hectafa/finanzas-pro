@@ -6,6 +6,7 @@
     "node": ">=22.12"
   },
   "scripts": {
+    "postinstall": "pnpm --filter @finanzas/shared build && pnpm --filter @finanzas/api generate",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "typecheck": "turbo run typecheck",
@@ -17,11 +18,17 @@
     "db:migrate": "pnpm --filter @finanzas/api db:migrate",
     "db:seed": "pnpm --filter @finanzas/api db:seed",
     "api": "pnpm --filter @finanzas/api dev",
-    "mobile": "pnpm --filter @finanzas/mobile start"
+    "mobile": "pnpm --filter @finanzas/mobile start",
+    "web": "pnpm --filter @finanzas/mobile web"
   },
   "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint": "9.39.5",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.13.0",
     "prettier": "3.9.10",
     "turbo": "2.11.10",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "typescript-eslint": "8.72.1"
   }
 }

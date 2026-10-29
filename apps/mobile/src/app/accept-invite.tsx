@@ -31,14 +31,18 @@ export default function AcceptInviteScreen() {
     else void SecureStore.getItemAsync(PENDING_INVITE_KEY).then(setToken);
   }, [params.token]);
 
-  if (status === 'signedOut') return <Redirect href={{ pathname: '/login', params: { returnTo: 'accept-invite' } }} />;
+  if (status === 'signedOut')
+    return <Redirect href={{ pathname: '/login', params: { returnTo: 'accept-invite' } }} />;
   if (!token) return <Loading label="Buscando invitación…" />;
 
   const accept = async () => {
     setBusy(true);
     setError(null);
     try {
-      const company = await api.request<CompanySummaryDto>('/invitations/accept', { method: 'POST', body: { token } });
+      const company = await api.request<CompanySummaryDto>('/invitations/accept', {
+        method: 'POST',
+        body: { token },
+      });
       await SecureStore.deleteItemAsync(PENDING_INVITE_KEY);
       await setCompany(company.id);
       await qc.invalidateQueries({ queryKey: ['companies'] });
@@ -52,7 +56,7 @@ export default function AcceptInviteScreen() {
 
   if (accepted) {
     return (
-      <Screen>
+      <Screen narrow>
         <Text variant="titleMedium">Ya formas parte de {accepted.name}</Text>
         <Text variant="bodyMedium" style={{ marginVertical: 8 }}>
           Tu rol: {accepted.role.name}
@@ -65,7 +69,7 @@ export default function AcceptInviteScreen() {
   }
 
   return (
-    <Screen>
+    <Screen narrow>
       <Text variant="bodyLarge">Te invitaron a colaborar en una empresa en Finanzas Pro.</Text>
       <Text variant="bodySmall" style={{ marginVertical: 8 }}>
         La invitación solo funciona con la cuenta del correo al que fue enviada.

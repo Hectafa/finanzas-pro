@@ -149,6 +149,56 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
   },
 ];
 
+/** Etiquetas para mostrar el catálogo agrupado por módulo (no afectan la autorización). */
+export const PERMISSION_MODULE_LABELS: Record<string, string> = {
+  dashboard: 'Inicio',
+  transactions: 'Movimientos',
+  sales: 'Ventas',
+  purchases: 'Compras',
+  inventory: 'Inventario',
+  receivables: 'Cuentas por cobrar y pagar',
+  budgets: 'Presupuestos',
+  payroll: 'Nómina',
+  reports: 'Reportes',
+  ai: 'Asistente de IA',
+  users: 'Usuarios',
+  settings: 'Configuración',
+  audit: 'Auditoría',
+};
+
+export const PERMISSION_ACTION_LABELS: Record<string, string> = {
+  view: 'Ver',
+  view_own: 'Ver lo propio',
+  create: 'Crear',
+  update: 'Editar',
+  approve: 'Aprobar',
+  void: 'Anular',
+  export: 'Exportar',
+  override_price: 'Cambiar precio',
+  manage: 'Administrar',
+  invite: 'Invitar',
+  use: 'Usar',
+};
+
+/** Catálogo agrupado por módulo, en el orden de PERMISSIONS. */
+export function permissionGroups(): {
+  module: string;
+  label: string;
+  permissions: { key: Permission; label: string }[];
+}[] {
+  const groups = new Map<string, { key: Permission; label: string }[]>();
+  for (const key of PERMISSIONS) {
+    const [module, action] = key.split(':') as [string, string];
+    if (!groups.has(module)) groups.set(module, []);
+    groups.get(module)!.push({ key, label: PERMISSION_ACTION_LABELS[action] ?? action });
+  }
+  return [...groups].map(([module, permissions]) => ({
+    module,
+    label: PERMISSION_MODULE_LABELS[module] ?? module,
+    permissions,
+  }));
+}
+
 export function isPermission(value: string): value is Permission {
   return (PERMISSIONS as readonly string[]).includes(value);
 }

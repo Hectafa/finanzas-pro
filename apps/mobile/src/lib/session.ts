@@ -1,6 +1,6 @@
 import type { AuthResponse, AuthTokens, UserDto } from '@finanzas/shared';
-import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
+import { secureStorage } from './storage';
 
 const REFRESH_KEY = 'fp.refreshToken';
 const COMPANY_KEY = 'fp.companyId';
@@ -24,7 +24,7 @@ interface SessionState {
 
 /**
  * Sesión del dispositivo. El refresh token y la empresa activa se guardan en el almacenamiento
- * seguro del sistema (Keychain / Keystore); el token de acceso vive solo en memoria.
+ * seguro del sistema (Keychain / Keystore; en web, el del navegador); el token de acceso vive solo en memoria.
  */
 export const useSession = create<SessionState>((set) => ({
   status: 'loading',
@@ -35,33 +35,44 @@ export const useSession = create<SessionState>((set) => ({
 
   hydrate: async () => {
     const [refreshToken, companyId] = await Promise.all([
-      SecureStore.getItemAsync(REFRESH_KEY),
-      SecureStore.getItemAsync(COMPANY_KEY),
+      secureStorage.get(REFRESH_KEY),
+      secureStorage.get(COMPANY_KEY),
     ]);
     // Con refresh token se considera iniciada; el primer request renovará el token de acceso.
     set({ refreshToken, companyId, status: refreshToken ? 'signedIn' : 'signedOut' });
   },
 
   signIn: async ({ user, tokens }) => {
-    await SecureStore.setItemAsync(REFRESH_KEY, tokens.refreshToken);
-    set({ status: 'signedIn', user, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
+    await secureStorage.set(REFRESH_KEY, tokens.refreshToken);
+    set({
+      status: 'signedIn',
+      user,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    });
   },
 
   setTokens: async (tokens) => {
-    await SecureStore.setItemAsync(REFRESH_KEY, tokens.refreshToken);
+    await secureStorage.set(REFRESH_KEY, tokens.refreshToken);
     set({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
   },
 
   setUser: (user) => set({ user }),
 
   setCompany: async (companyId) => {
-    if (companyId) await SecureStore.setItemAsync(COMPANY_KEY, companyId);
-    else await SecureStore.deleteItemAsync(COMPANY_KEY);
+    if (companyId) await secureStorage.set(COMPANY_KEY, companyId);
+    else await secureStorage.remove(COMPANY_KEY);
     set({ companyId });
   },
 
   signOut: async () => {
-    await Promise.all([SecureStore.deleteItemAsync(REFRESH_KEY), SecureStore.deleteItemAsync(COMPANY_KEY)]);
-    set({ status: 'signedOut', user: null, accessToken: null, refreshToken: null, companyId: null });
+    await Promise.all([secureStorage.remove(REFRESH_KEY), secureStorage.remove(COMPANY_KEY)]);
+    set({
+      status: 'signedOut',
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      companyId: null,
+    });
   },
 }));

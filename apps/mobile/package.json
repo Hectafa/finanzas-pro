@@ -7,10 +7,13 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
+    "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings=0",
     "test": "jest --ci"
   },
   "dependencies": {
+    "@expo/metro-runtime": "~58.0.15",
     "@expo/vector-icons": "^15.1.1",
     "@finanzas/shared": "workspace:*",
     "@tanstack/react-query": "^5.105.0",
@@ -22,17 +25,20 @@
     "expo-secure-store": "~58.0.2",
     "expo-status-bar": "~58.0.4",
     "react": "19.3.0",
+    "react-dom": "19.3.0",
     "react-native": "0.88.1",
     "react-native-paper": "^5.15.3",
     "react-native-safe-area-context": "~5.10.1",
     "react-native-screens": "~4.30.1",
-    "zustand": "^5.0.16",
-    "zod": "4.6.7"
+    "react-native-web": "^0.21.4",
+    "zod": "4.6.7",
+    "zustand": "^5.0.16"
   },
   "devDependencies": {
     "@testing-library/react-native": "^14.1.0",
     "@types/jest": "30.0.0",
     "@types/react": "~19.3.0",
+    "eslint-config-expo": "~58.0.4",
     "jest": "~30.5.2",
     "jest-expo": "~58.0.13",
     "typescript": "~6.0.3"

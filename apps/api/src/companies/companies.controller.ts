@@ -7,14 +7,22 @@ import {
   createInvitationSchema,
   createRoleSchema,
   updateCompanySchema,
+  updateRoleSchema,
   type AcceptInvitationInput,
   type ChangeMemberRoleInput,
   type CreateCompanyInput,
   type CreateInvitationInput,
   type CreateRoleInput,
   type UpdateCompanyInput,
+  type UpdateRoleInput,
 } from '@finanzas/shared';
-import { Authorize, CurrentAuth, CurrentTenant, type AuthContext, type TenantContext } from '../common/request-context';
+import {
+  Authorize,
+  CurrentAuth,
+  CurrentTenant,
+  type AuthContext,
+  type TenantContext,
+} from '../common/request-context';
 import { ApiZodBody, ZodPipe, uuidParam } from '../common/zod';
 import { CompaniesService } from './companies.service';
 import { InvitationsService } from './invitations.service';
@@ -28,7 +36,10 @@ export class CompaniesController {
 
   @Post()
   @ApiZodBody(createCompanySchema)
-  create(@CurrentAuth() auth: AuthContext, @Body(new ZodPipe(createCompanySchema)) body: CreateCompanyInput) {
+  create(
+    @CurrentAuth() auth: AuthContext,
+    @Body(new ZodPipe(createCompanySchema)) body: CreateCompanyInput,
+  ) {
     return this.companies.create(auth, body);
   }
 
@@ -46,7 +57,10 @@ export class CompaniesController {
   @Patch('current')
   @Authorize('settings:manage')
   @ApiZodBody(updateCompanySchema)
-  update(@CurrentTenant() t: TenantContext, @Body(new ZodPipe(updateCompanySchema)) body: UpdateCompanyInput) {
+  update(
+    @CurrentTenant() t: TenantContext,
+    @Body(new ZodPipe(updateCompanySchema)) body: UpdateCompanyInput,
+  ) {
     return this.companies.update(t, body);
   }
 }
@@ -97,8 +111,29 @@ export class MembersController {
   @Post('roles')
   @Authorize('users:manage')
   @ApiZodBody(createRoleSchema)
-  createRole(@CurrentTenant() t: TenantContext, @Body(new ZodPipe(createRoleSchema)) body: CreateRoleInput) {
+  createRole(
+    @CurrentTenant() t: TenantContext,
+    @Body(new ZodPipe(createRoleSchema)) body: CreateRoleInput,
+  ) {
     return this.members.createRole(t, body);
+  }
+
+  @Patch('roles/:id')
+  @Authorize('users:manage')
+  @ApiZodBody(updateRoleSchema)
+  updateRole(
+    @CurrentTenant() t: TenantContext,
+    @Param('id', uuidParam) id: string,
+    @Body(new ZodPipe(updateRoleSchema)) body: UpdateRoleInput,
+  ) {
+    return this.members.updateRole(t, id, body);
+  }
+
+  @Post('roles/:id/archive')
+  @Authorize('users:manage')
+  @HttpCode(204)
+  async archiveRole(@CurrentTenant() t: TenantContext, @Param('id', uuidParam) id: string) {
+    await this.members.archiveRole(t, id);
   }
 }
 
@@ -110,7 +145,10 @@ export class InvitationsController {
   @Post()
   @Authorize('users:invite')
   @ApiZodBody(createInvitationSchema)
-  create(@CurrentTenant() t: TenantContext, @Body(new ZodPipe(createInvitationSchema)) body: CreateInvitationInput) {
+  create(
+    @CurrentTenant() t: TenantContext,
+    @Body(new ZodPipe(createInvitationSchema)) body: CreateInvitationInput,
+  ) {
     return this.invitations.create(t, body);
   }
 
@@ -132,7 +170,10 @@ export class InvitationsController {
   @ApiBearerAuth()
   @HttpCode(200)
   @ApiZodBody(acceptInvitationSchema)
-  accept(@CurrentAuth() auth: AuthContext, @Body(new ZodPipe(acceptInvitationSchema)) body: AcceptInvitationInput) {
+  accept(
+    @CurrentAuth() auth: AuthContext,
+    @Body(new ZodPipe(acceptInvitationSchema)) body: AcceptInvitationInput,
+  ) {
     return this.invitations.accept(auth, body.token);
   }
 }

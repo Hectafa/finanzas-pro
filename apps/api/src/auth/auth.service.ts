@@ -16,6 +16,7 @@ import { DbService, type Tx } from '../db/db.service';
 import { newOpaqueToken, sha256Hex, uuidv7 } from '../db/ids';
 import type { User } from '../generated/prisma/client';
 import { Mailer } from '../mail/mailer';
+import { linksText } from '../mail/links';
 import { burnPasswordCheck, hashPassword, verifyPassword } from './passwords';
 import { TokenService } from './token.service';
 
@@ -36,8 +37,12 @@ export class AuthService {
 
   async register(input: RegisterInput, requestId?: string): Promise<AuthResponse> {
     const passwordHash = await hashPassword(input.password);
-    const existing = await this.db.client.user.findUnique({ where: { email: input.email }, select: { id: true } });
-    if (existing) throw Errors.conflict('EMAIL_UNAVAILABLE', 'No es posible registrarse con ese correo');
+    const existing = await this.db.client.user.findUnique({
+      where: { email: input.email },
+      select: { id: true },
+    });
+    if (existing)
+      throw Errors.conflict('EMAIL_UNAVAILABLE', 'No es posible registrarse con ese correo');
 
     return this.db.system(async (tx) => {
       const user = await tx.user.create({
@@ -62,7 +67,8 @@ export class AuthService {
       await burnPasswordCheck(input.password);
       throw Errors.invalidCredentials();
     }
-    if (user.lockedUntil && user.lockedUntil > new Date()) throw Errors.accountLocked(user.lockedUntil);
+    if (user.lockedUntil && user.lockedUntil > new Date())
+      throw Errors.accountLocked(user.lockedUntil);
 
     const valid = await verifyPassword(user.passwordHash, input.password);
     if (!valid || user.status !== 'ACTIVE') {
@@ -89,7 +95,10 @@ export class AuthService {
     }
 
     return this.db.system(async (tx) => {
-      await tx.user.update({ where: { id: user.id }, data: { failedLoginCount: 0, lockedUntil: null } });
+      await tx.user.update({
+        where: { id: user.id },
+        data: { failedLoginCount: 0, lockedUntil: null },
+      });
       const tokens = await this.openSession(tx, user.id, input.deviceName);
       await this.audit.record(tx, {
         companyId: null,
@@ -110,15 +119,25 @@ export class AuthService {
   async refresh(refreshToken: string, requestId?: string): Promise<AuthTokens> {
     const tokenHash = sha256Hex(refreshToken);
     const result = await this.db.system(async (tx) => {
-      const stored = await tx.refreshToken.findUnique({ where: { tokenHash }, include: { session: true } });
+      const stored = await tx.refreshToken.findUnique({
+        where: { tokenHash },
+        include: { session: true },
+      });
       if (!stored) return { error: 'invalid' as const };
       const { session } = stored;
       const now = new Date();
-      if (session.revokedAt || session.expiresAt <= now || stored.expiresAt <= now) return { error: 'invalid' as const };
+      if (session.revokedAt || session.expiresAt <= now || stored.expiresAt <= now)
+        return { error: 'invalid' as const };
 
-      const claimed = await tx.refreshToken.updateMany({ where: { id: stored.id, usedAt: null }, data: { usedAt: now } });
+      const claimed = await tx.refreshToken.updateMany({
+        where: { id: stored.id, usedAt: null },
+        data: { usedAt: now },
+      });
       if (claimed.count === 0) {
-        await tx.session.update({ where: { id: session.id }, data: { revokedAt: now, revokedReason: 'REFRESH_REUSE' } });
+        await tx.session.update({
+          where: { id: session.id },
+          data: { revokedAt: now, revokedReason: 'REFRESH_REUSE' },
+        });
         await this.audit.record(tx, {
           companyId: null,
           actorUserId: session.userId,
@@ -210,9 +229,17 @@ export class AuthService {
 
     const { token, hash } = newOpaqueToken();
     await this.db.system(async (tx) => {
-      await tx.passwordResetToken.updateMany({ where: { userId: user.id, usedAt: null }, data: { usedAt: new Date() } });
+      await tx.passwordResetToken.updateMany({
+        where: { userId: user.id, usedAt: null },
+        data: { usedAt: new Date() },
+      });
       await tx.passwordResetToken.create({
-        data: { id: uuidv7(), userId: user.id, tokenHash: hash, expiresAt: new Date(Date.now() + RESET_TOKEN_MINUTES * 60_000) },
+        data: {
+          id: uuidv7(),
+          userId: user.id,
+          tokenHash: hash,
+          expiresAt: new Date(Date.now() + RESET_TOKEN_MINUTES * 60_000),
+        },
       });
       await this.audit.record(tx, {
         companyId: null,
@@ -224,13 +251,13 @@ export class AuthService {
       });
     });
 
-    const link = `${this.env.APP_LINK_BASE}reset-password?token=${token}`;
     await this.mailer.send({
       to: user.email,
       subject: 'Restablece tu contraseña de Finanzas Pro',
       text:
-        `Hola ${user.fullName}:\n\nPara crear una nueva contraseña abre este enlace desde tu teléfono ` +
-        `(válido ${RESET_TOKEN_MINUTES} minutos):\n\n${link}\n\nSi no lo solicitaste, ignora este mensaje.`,
+        `Hola ${user.fullName}:\n\nPara crear una nueva contraseña abre este enlace ` +
+        `(válido ${RESET_TOKEN_MINUTES} minutos):\n\n${linksText(this.env, `reset-password?token=${token}`)}\n` +
+        `Si no lo solicitaste, ignora este mensaje.`,
     });
   }
 
@@ -241,7 +268,10 @@ export class AuthService {
       const now = new Date();
       const stored = await tx.passwordResetToken.findUnique({ where: { tokenHash } });
       if (!stored || stored.usedAt || stored.expiresAt <= now) return false;
-      const claimed = await tx.passwordResetToken.updateMany({ where: { id: stored.id, usedAt: null }, data: { usedAt: now } });
+      const claimed = await tx.passwordResetToken.updateMany({
+        where: { id: stored.id, usedAt: null },
+        data: { usedAt: now },
+      });
       if (claimed.count === 0) return false;
 
       await tx.user.update({
@@ -282,12 +312,19 @@ export class AuthService {
     return this.issueTokens(tx, userId, session.id, session.expiresAt);
   }
 
-  private async issueTokens(tx: Tx, userId: string, sessionId: string, sessionExpiresAt: Date): Promise<AuthTokens> {
+  private async issueTokens(
+    tx: Tx,
+    userId: string,
+    sessionId: string,
+    sessionExpiresAt: Date,
+  ): Promise<AuthTokens> {
     const { token, hash } = newOpaqueToken();
     const refreshExpiresAt = new Date(
       Math.min(Date.now() + this.env.REFRESH_TOKEN_TTL_DAYS * DAY_MS, sessionExpiresAt.getTime()),
     );
-    await tx.refreshToken.create({ data: { id: uuidv7(), sessionId, tokenHash: hash, expiresAt: refreshExpiresAt } });
+    await tx.refreshToken.create({
+      data: { id: uuidv7(), sessionId, tokenHash: hash, expiresAt: refreshExpiresAt },
+    });
     const access = await this.tokens.signAccess(userId, sessionId);
     return {
       accessToken: access.token,

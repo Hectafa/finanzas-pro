@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Tipos, pruebas y empaquetado
+    name: Lint, tipos, pruebas y empaquetado
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -52,13 +52,16 @@ jobs:
           -c "CREATE ROLE finanzas_app LOGIN PASSWORD 'finanzas_app_ci' NOSUPERUSER NOBYPASSRLS;"
           -c "GRANT CONNECT ON DATABASE finanzas_test TO finanzas_app;"
 
+      - name: Lint (incluye reglas de dinero)
+        run: pnpm lint
+
       - name: Verificar tipos
         run: pnpm typecheck
 
       - name: Pruebas (unitarias e integración contra PostgreSQL)
         run: pnpm test
 
-      - name: Empaquetar la app para Android e iOS
+      - name: Empaquetar la app para Android, iOS y web
         env:
           EXPO_PUBLIC_API_URL: https://api.example.invalid
-        run: pnpm --filter @finanzas/mobile exec expo export --platform android --platform ios --output-dir ${{ runner.temp }}/expo-export
+        run: pnpm --filter @finanzas/mobile exec expo export --platform android --platform ios --platform web --output-dir ${{ runner.temp }}/expo-export

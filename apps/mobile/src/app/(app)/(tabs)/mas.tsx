@@ -29,7 +29,11 @@ export default function MasScreen() {
 
   return (
     <Screen>
-      <List.Item title={user?.fullName ?? ''} description={user?.email} left={(p) => <List.Icon {...p} icon="account-circle-outline" />} />
+      <List.Item
+        title={user?.fullName ?? ''}
+        description={user?.email}
+        left={(p) => <List.Icon {...p} icon="account-circle-outline" />}
+      />
       {company.data ? (
         <List.Item
           title={company.data.name}
@@ -40,21 +44,41 @@ export default function MasScreen() {
       ) : null}
       <Divider />
       {can('users:view') ? (
-        <List.Item title="Usuarios y accesos" left={(p) => <List.Icon {...p} icon="account-key-outline" />} onPress={() => router.push('/usuarios')} />
+        <List.Item
+          title="Usuarios y accesos"
+          left={(p) => <List.Icon {...p} icon="account-key-outline" />}
+          onPress={() => router.push('/usuarios')}
+        />
       ) : null}
-      <List.Item title="Sesiones activas" left={(p) => <List.Icon {...p} icon="cellphone-lock" />} onPress={() => router.push('/sesiones')} />
+      <List.Item
+        title="Sesiones activas"
+        left={(p) => <List.Icon {...p} icon="cellphone-lock" />}
+        onPress={() => router.push('/sesiones')}
+      />
       <Divider />
       {LATER.map((m) => (
-        <List.Item key={m.title} title={m.title} description={`Disponible en la Fase ${m.phase}`} left={(p) => <List.Icon {...p} icon={m.icon} />} disabled />
+        <List.Item
+          key={m.title}
+          title={m.title}
+          description={`Disponible en la Fase ${m.phase}`}
+          left={(p) => <List.Icon {...p} icon={m.icon} />}
+          disabled
+        />
       ))}
       <Divider />
-      <List.Item title="Cerrar sesión" left={(p) => <List.Icon {...p} icon="logout" />} onPress={() => setConfirm(true)} />
+      <List.Item
+        title="Cerrar sesión"
+        left={(p) => <List.Icon {...p} icon="logout" />}
+        onPress={() => setConfirm(true)}
+      />
 
       <Portal>
         <Dialog visible={confirm} onDismiss={() => setConfirm(false)}>
           <Dialog.Title>¿Cerrar sesión?</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium">Tendrás que volver a iniciar sesión en este teléfono.</Text>
+            <Text variant="bodyMedium">
+              Tendrás que volver a iniciar sesión en este dispositivo.
+            </Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setConfirm(false)}>Cancelar</Button>

@@ -143,6 +143,9 @@ model Role {
   isSystem    Boolean             @default(false) @map("is_system")
   createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
   createdBy   String?             @map("created_by") @db.Uuid
+  updatedAt   DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedBy   String?             @map("updated_by") @db.Uuid
+  version     Int                 @default(1)
   archivedAt  DateTime?           @map("archived_at") @db.Timestamptz(3)
   company     Company?            @relation(fields: [companyId], references: [id], onDelete: Restrict)
   permissions RolePermission[]
