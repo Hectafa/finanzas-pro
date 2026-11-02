@@ -37,7 +37,11 @@ export interface ResolvedPeriod {
  * Convierte un periodo a un intervalo [start, end) en la zona horaria de la empresa.
  * Semanas ISO (lunes a domingo). Los límites respetan cambios de horario.
  */
-export function resolvePeriod(query: PeriodQuery, timeZone: string, now: Date = new Date()): ResolvedPeriod {
+export function resolvePeriod(
+  query: PeriodQuery,
+  timeZone: string,
+  now: Date = new Date(),
+): ResolvedPeriod {
   let start: DateTime;
   let end: DateTime;
 
@@ -68,6 +72,16 @@ export function resolvePeriod(query: PeriodQuery, timeZone: string, now: Date = 
     fromDate: start.toISODate()!,
     toDate: end.minus({ days: 1 }).toISODate()!,
   };
+}
+
+/** Hoy (YYYY-MM-DD) en la zona horaria de la empresa. La API y la app usan la misma regla. */
+export function todayIn(timeZone: string, now: Date = new Date()): string {
+  return DateTime.fromJSDate(now).setZone(timeZone).toISODate()!;
+}
+
+/** Suma (o resta) días a una fecha de negocio YYYY-MM-DD. */
+export function addDays(isoDate: string, days: number): string {
+  return DateTime.fromISO(isoDate).plus({ days }).toISODate()!;
 }
 
 export function isValidTimeZone(zone: string): boolean {

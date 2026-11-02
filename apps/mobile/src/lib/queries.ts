@@ -1,18 +1,29 @@
 import type {
+  CategoryDto,
   CompanyContextDto,
   CompanySummaryDto,
+  CreateCategoryInput,
   CreateCompanyInput,
+  CreateFinancialAccountInput,
   CreateRoleInput,
+  CreateTransactionInput,
   DashboardSummaryDto,
+  FinancialAccountDto,
   InvitationDto,
+  ListTransactionsQuery,
   MemberDto,
   PeriodPreset,
   RoleDto,
   SessionDto,
+  TransactionDto,
+  TransactionPageDto,
+  UpdateCategoryInput,
+  UpdateFinancialAccountInput,
   UpdateRoleInput,
+  UpdateTransactionInput,
   UserDto,
 } from '@finanzas/shared';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 import { useSession } from './session';
 
@@ -163,5 +174,182 @@ export function useRevokeSession() {
   return useMutation({
     mutationFn: (id: string) => api.request<void>(`/auth/sessions/${id}`, { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['sessions'] }),
+  });
+}
+
+// ---------- Finanzas: cuentas, categorías y movimientos ----------
+
+export function useAccounts(includeArchived = false) {
+  const companyId = useCompanyKey();
+  return useQuery({
+    queryKey: ['accounts', companyId, includeArchived],
+    queryFn: () =>
+      api.request<FinancialAccountDto[]>('/accounts', {
+        company: true,
+        query: { includeArchived: String(includeArchived) },
+      }),
+    enabled: !!companyId,
+  });
+}
+
+export function useCategories(includeArchived = false) {
+  const companyId = useCompanyKey();
+  return useQuery({
+    queryKey: ['categories', companyId, includeArchived],
+    queryFn: () =>
+      api.request<CategoryDto[]>('/categories', {
+        company: true,
+        query: { includeArchived: String(includeArchived) },
+      }),
+    enabled: !!companyId,
+  });
+}
+
+/** Filtros de la lista de movimientos (sin paginación: el cursor lo maneja la consulta). */
+export type TransactionFilters = Omit<ListTransactionsQuery, 'limit' | 'cursor'>;
+
+export function useTransactions(filters: TransactionFilters, enabled = true) {
+  const companyId = useCompanyKey();
+  return useInfiniteQuery({
+    queryKey: ['transactions', companyId, filters],
+    queryFn: ({ pageParam }) =>
+      api.request<TransactionPageDto>('/transactions', {
+        company: true,
+        query: { ...filters, limit: '30', cursor: pageParam },
+      }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && !!companyId,
+  });
+}
+
+export function useTransaction(id: string) {
+  const companyId = useCompanyKey();
+  return useQuery({
+    queryKey: ['transaction', companyId, id],
+    queryFn: () => api.request<TransactionDto>(`/transactions/${id}`, { company: true }),
+    enabled: !!companyId,
+  });
+}
+
+/** Un cambio en el dinero afecta saldos, listas de movimientos y el resumen de Inicio. */
+function useInvalidateFinance() {
+  const qc = useQueryClient();
+  return () =>
+    Promise.all(
+      ['accounts', 'transactions', 'transaction', 'dashboard'].map((key) =>
+        qc.invalidateQueries({ queryKey: [key] }),
+      ),
+    );
+}
+
+export function useCreateAccount() {
+  const invalidate = useInvalidateFinance();
+  return useMutation({
+    mutationFn: (input: CreateFinancialAccountInput) =>
+      api.request<FinancialAccountDto>('/accounts', { method: 'POST', body: input, company: true }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateAccount() {
+  const invalidate = useInvalidateFinance();
+  return useMutation({
+    mutationFn: ({ id, ...input }: UpdateFinancialAccountInput & { id: string }) =>
+      api.request<FinancialAccountDto>(`/accounts/${id}`, {
+        method: 'PATCH',
+        body: input,
+        company: true,
+      }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useArchiveAccount() {
+  const invalidate = useInvalidateFinance();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.request<void>(`/accounts/${id}/archive`, { method: 'POST', company: true }),
+    onSuccess: invalidate,
+  });
+}
+
+function useInvalidateCategories() {
+  const qc = useQueryClient();
+  return () => qc.invalidateQueries({ queryKey: ['categories'] });
+}
+
+export function useCreateCategory() {
+  const invalidate = useInvalidateCategories();
+  return useMutation({
+    mutationFn: (input: CreateCategoryInput) =>
+      api.request<CategoryDto>('/categories', { method: 'POST', body: input, company: true }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateCategory() {
+  const invalidate = useInvalidateCategories();
+  return useMutation({
+    mutationFn: ({ id, ...input }: UpdateCategoryInput & { id: string }) =>
+      api.request<CategoryDto>(`/categories/${id}`, {
+        method: 'PATCH',
+        body: input,
+        company: true,
+      }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useArchiveCategory() {
+  const invalidate = useInvalidateCategories();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.request<void>(`/categories/${id}/archive`, { method: 'POST', company: true }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateTransaction() {
+  const invalidate = useInvalidateFinance();
+  return useMutation({
+    mutationFn: (input: CreateTransactionInput) =>
+      api.request<TransactionDto>('/transactions', { method: 'POST', body: input, company: true }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateTransaction() {
+  const invalidate = useInvalidateFinance();
+  return useMutation({
+    mutationFn: ({ id, ...input }: UpdateTransactionInput & { id: string }) =>
+      api.request<TransactionDto>(`/transactions/${id}`, {
+        method: 'PATCH',
+        body: input,
+        company: true,
+      }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useApproveTransaction() {
+  const invalidate = useInvalidateFinance();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.request<TransactionDto>(`/transactions/${id}/approve`, { method: 'POST', company: true }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useVoidTransaction() {
+  const invalidate = useInvalidateFinance();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      api.request<TransactionDto>(`/transactions/${id}/void`, {
+        method: 'POST',
+        body: { reason },
+        company: true,
+      }),
+    onSuccess: invalidate,
   });
 }

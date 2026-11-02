@@ -1,5 +1,4 @@
-import type { Permission } from '@finanzas/shared';
-import { DateTime } from 'luxon';
+import { todayIn, type Permission } from '@finanzas/shared';
 import { Errors } from '../common/errors';
 import type { TenantContext } from '../common/request-context';
 import type { Tx } from '../db/db.service';
@@ -7,11 +6,6 @@ import type { Tx } from '../db/db.service';
 /** Exige al menos uno de los permisos (@Authorize exige todos). */
 export function requireAny(t: TenantContext, ...permissions: Permission[]): void {
   if (!permissions.some((p) => t.permissions.has(p))) throw Errors.forbidden();
-}
-
-/** Hoy (YYYY-MM-DD) en la zona horaria de la empresa. */
-export function todayIn(timeZone: string, now: Date = new Date()): string {
-  return DateTime.fromJSDate(now).setZone(timeZone).toISODate()!;
 }
 
 export async function companySettings(tx: Tx, companyId: string) {

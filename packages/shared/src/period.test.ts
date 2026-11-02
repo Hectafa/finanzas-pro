@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { periodQuerySchema, resolvePeriod } from './period';
+import { addDays, periodQuerySchema, resolvePeriod, todayIn } from './period';
 
 const MX = 'America/Mexico_City';
 
@@ -24,7 +24,9 @@ describe('resolvePeriod', () => {
   });
 
   it('trimestre y año', () => {
-    expect(resolvePeriod({ period: 'quarter', date: '2026-05-20' }, MX).fromDate).toBe('2026-04-01');
+    expect(resolvePeriod({ period: 'quarter', date: '2026-05-20' }, MX).fromDate).toBe(
+      '2026-04-01',
+    );
     const y = resolvePeriod({ period: 'year', date: '2026-12-31' }, MX);
     expect(y.fromDate).toBe('2026-01-01');
     expect(y.toDate).toBe('2026-12-31');
@@ -50,12 +52,32 @@ describe('resolvePeriod', () => {
   });
 
   it('rechaza rangos invertidos y excesivos', () => {
-    expect(() => resolvePeriod({ period: 'custom', from: '2026-02-01', to: '2026-01-01' }, MX)).toThrow();
-    expect(() => resolvePeriod({ period: 'custom', from: '2015-01-01', to: '2026-01-01' }, MX)).toThrow();
+    expect(() =>
+      resolvePeriod({ period: 'custom', from: '2026-02-01', to: '2026-01-01' }, MX),
+    ).toThrow();
+    expect(() =>
+      resolvePeriod({ period: 'custom', from: '2015-01-01', to: '2026-01-01' }, MX),
+    ).toThrow();
   });
 
   it('el esquema exige from/to en personalizado y aplica month por defecto', () => {
-    expect(periodQuerySchema.safeParse({ period: 'custom', from: '2026-01-01' }).success).toBe(false);
+    expect(periodQuerySchema.safeParse({ period: 'custom', from: '2026-01-01' }).success).toBe(
+      false,
+    );
     expect(periodQuerySchema.parse({}).period).toBe('month');
+  });
+});
+
+describe('todayIn / addDays', () => {
+  it('"hoy" es el de la zona de la empresa, no el UTC', () => {
+    // 03:30 UTC del 1 de noviembre todavía es 31 de octubre en la Ciudad de México.
+    const now = new Date('2026-11-01T03:30:00Z');
+    expect(todayIn(MX, now)).toBe('2026-10-31');
+    expect(todayIn('UTC', now)).toBe('2026-11-01');
+  });
+
+  it('suma y resta días cruzando meses y años', () => {
+    expect(addDays('2026-03-01', -1)).toBe('2026-02-28');
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
   });
 });

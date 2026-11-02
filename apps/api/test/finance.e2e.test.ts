@@ -9,7 +9,7 @@ import type {
 import { DateTime } from 'luxon';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { uuidv7 } from '../src/db/ids';
-import { todayIn } from '../src/finance/common';
+import { todayIn } from '@finanzas/shared';
 import {
   addMember,
   createCompany,
