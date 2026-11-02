@@ -9,6 +9,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Button, Chip, Dialog, Divider, List, Portal, Text, useTheme } from 'react-native-paper';
+import { ReceiptsSection } from '../../../components/receipts';
 import { ErrorState, Field, FormError, Loading, Screen, styles } from '../../../components/ui';
 import { ApiError } from '../../../lib/api';
 import { notify } from '../../../lib/confirm';
@@ -82,6 +83,8 @@ export default function MovimientoScreen() {
   // Mismas reglas que el servidor: permiso de edición, o quien lo capturó mientras está por revisar.
   const canEdit =
     active && (perms.has('transactions:update') || (pending && tx.createdBy.id === userId));
+  // Comprobantes: además, quien lo capturó puede adjuntar aunque ya esté confirmado.
+  const canAttach = active && (perms.has('transactions:update') || tx.createdBy.id === userId);
 
   const doApprove = async () => {
     try {
@@ -269,6 +272,9 @@ export default function MovimientoScreen() {
         'account-outline',
       )}
       {tx.voidedAt ? row('Anulado', formatTimestamp(tx.voidedAt), 'cancel') : null}
+
+      <Divider style={styles.mt} />
+      <ReceiptsSection transactionId={tx.id} currency={tx.currency} canEdit={canAttach} />
 
       <Portal>
         <Dialog visible={voiding} onDismiss={() => setVoiding(false)} style={styles.dialog}>

@@ -48,3 +48,4 @@ uploads/
 # Prisma generado
 apps/api/src/generated/
 apps/api/.mail/
+apps/api/.storage/

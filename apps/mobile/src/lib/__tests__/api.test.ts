@@ -145,4 +145,19 @@ describe('createApiClient', () => {
     );
     await expect(api.request('/auth/logout', { method: 'POST' })).resolves.toBeUndefined();
   });
+
+  it('envía FormData tal cual, sin forzar JSON (subida de archivos)', async () => {
+    const fetchMock = jest.fn().mockResolvedValue(json(201, { id: 'a1' }));
+    const api = createApiClient('http://api', makeSession().port, fetchMock);
+    const form = new FormData();
+    form.append('id', 'a1');
+    await api.request('/transactions/t1/attachments', {
+      method: 'POST',
+      body: form,
+      company: true,
+    });
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.body).toBe(form);
+    expect(init.headers['Content-Type']).toBeUndefined();
+  });
 });

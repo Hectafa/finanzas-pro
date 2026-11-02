@@ -42,7 +42,8 @@ export const Errors = {
   /** Se usa también cuando el recurso existe pero pertenece a otra empresa: no revela su existencia. */
   notFound: (message = 'Recurso no encontrado') =>
     new AppError(HttpStatus.NOT_FOUND, 'NOT_FOUND', message),
-  conflict: (code: string, message: string) => new AppError(HttpStatus.CONFLICT, code, message),
+  conflict: (code: string, message: string, details?: unknown) =>
+    new AppError(HttpStatus.CONFLICT, code, message, details),
   badRequest: (code: string, message: string) =>
     new AppError(HttpStatus.BAD_REQUEST, code, message),
 };

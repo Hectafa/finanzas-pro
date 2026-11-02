@@ -56,7 +56,9 @@ export function createApiClient(
 
   async function send(path: string, opts: RequestOptions): Promise<Response> {
     const headers: Record<string, string> = { Accept: 'application/json' };
-    if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
+    // FormData (archivos): el Content-Type con su "boundary" lo pone fetch.
+    const isForm = typeof FormData !== 'undefined' && opts.body instanceof FormData;
+    if (opts.body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
     if (!opts.anonymous) {
       const token = session.getAccessToken();
       if (token) headers.Authorization = `Bearer ${token}`;
@@ -75,7 +77,11 @@ export function createApiClient(
       return await fetchImpl(`${baseUrl}/v1${path}${qs ? `?${qs}` : ''}`, {
         method: opts.method ?? 'GET',
         headers,
-        body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+        body: isForm
+          ? (opts.body as FormData)
+          : opts.body !== undefined
+            ? JSON.stringify(opts.body)
+            : undefined,
       });
     } catch {
       throw new ApiError(

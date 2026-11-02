@@ -145,6 +145,11 @@ export default function MovimientosScreen() {
     const dir = transactionDirection(item.type);
     const details = [formatDate(item.date), transactionAccounts(item)];
     if (item.status !== 'POSTED') details.push(TRANSACTION_STATUS_LABELS[item.status]);
+    if (item.attachmentCount > 0) {
+      details.push(
+        item.attachmentCount === 1 ? '1 comprobante' : `${item.attachmentCount} comprobantes`,
+      );
+    }
     return (
       <List.Item
         title={transactionTitle(item)}

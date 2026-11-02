@@ -1,6 +1,11 @@
-import type { CategoryDto, TransactionDto, TransactionType } from '@finanzas/shared';
+import type {
+  CategoryDto,
+  DuplicateAttachmentDetails,
+  TransactionDto,
+  TransactionType,
+} from '@finanzas/shared';
 import { TRANSACTION_TYPE_LABELS } from '@finanzas/shared';
-import { formatMoney } from './format';
+import { formatDate, formatMoney } from './format';
 
 /** Efecto del movimiento en el dinero del negocio: entra, sale o solo cambia de cuenta. */
 export function transactionDirection(type: TransactionType): 'in' | 'out' | 'move' {
@@ -58,4 +63,27 @@ export function categoryOptions(
     }
   }
   return out;
+}
+
+/** Nombre del comprobante con extensión .jpg (la app convierte toda foto a JPG antes de subirla). */
+export function receiptFileName(original: string | null | undefined, now = Date.now()): string {
+  const base = (original ?? '').replace(/\.[^.]*$/, '').trim();
+  return `${base || `comprobante-${now}`}.jpg`;
+}
+
+/** Las URLs firmadas del almacenamiento local son relativas a la API; las de R2/S3, absolutas. */
+export function resolveFileUrl(url: string, apiBase: string): string {
+  return url.startsWith('/') ? `${apiBase}${url}` : url;
+}
+
+/** Dónde está ya un comprobante repetido, en frases para el diálogo de confirmación. */
+export function describeDuplicates(
+  details: DuplicateAttachmentDetails,
+  currency: string,
+): string[] {
+  return details.duplicates.map((d) =>
+    d.visible
+      ? `${d.description ?? 'Movimiento'} · ${formatDate(d.date)} · ${formatMoney(d.amount, currency)}`
+      : 'Un movimiento que no tienes permiso de ver',
+  );
 }

@@ -16,6 +16,7 @@ import { DbModule } from './db/db.module';
 import { FinanceModule } from './finance/finance.module';
 import { HealthModule } from './health/health.controller';
 import { MailModule } from './mail/mail.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { MailModule } from './mail/mail.module';
               'req.headers.cookie',
               'res.headers["set-cookie"]',
               'req.query.token',
+              'req.query.sig',
             ],
             censor: '[oculto]',
           },
@@ -66,6 +68,7 @@ import { MailModule } from './mail/mail.module';
     }),
     DbModule,
     MailModule,
+    StorageModule,
     AuditModule,
     AuthModule,
     CompaniesModule,
