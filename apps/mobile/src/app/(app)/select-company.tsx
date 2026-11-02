@@ -35,7 +35,9 @@ export default function SelectCompanyScreen() {
               key={c.id}
               title={c.name + (c.isDemo ? ' · DEMO' : '')}
               description={`${c.role.name} · ${c.currency}`}
-              left={(p) => <List.Icon {...p} icon={c.id === companyId ? 'check-circle' : 'store-outline'} />}
+              left={(p) => (
+                <List.Icon {...p} icon={c.id === companyId ? 'check-circle' : 'store-outline'} />
+              )}
               onPress={() => void choose(c.id)}
               accessibilityLabel={`${c.name}, rol ${c.role.name}${c.id === companyId ? ', seleccionada' : ''}`}
             />
@@ -51,8 +53,18 @@ export default function SelectCompanyScreen() {
         <Card.Title title="Crear una empresa" subtitle="Serás su Propietario" />
         <Card.Content>
           <FormError message={form.formError} />
-          <Field label="Nombre del negocio" value={form.values.name} onChangeText={form.set('name')} error={form.errors.name} />
-          <Button mode="contained" onPress={onCreate} loading={form.submitting} disabled={form.submitting}>
+          <Field
+            label="Nombre del negocio"
+            value={form.values.name}
+            onChangeText={form.set('name')}
+            error={form.errors.name}
+          />
+          <Button
+            mode="contained"
+            onPress={onCreate}
+            loading={form.submitting}
+            disabled={form.submitting}
+          >
             Crear empresa
           </Button>
         </Card.Content>

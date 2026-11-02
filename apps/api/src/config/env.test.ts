@@ -14,7 +14,9 @@ describe('loadEnv', () => {
   });
 
   it('rechaza secretos cortos sin mostrar su valor', () => {
-    expect(() => loadEnv({ ...base, JWT_ACCESS_SECRET: 'corto-secreto' })).toThrow(/JWT_ACCESS_SECRET/);
+    expect(() => loadEnv({ ...base, JWT_ACCESS_SECRET: 'corto-secreto' })).toThrow(
+      /JWT_ACCESS_SECRET/,
+    );
     try {
       loadEnv({ ...base, JWT_ACCESS_SECRET: 'corto-secreto' });
     } catch (e) {
@@ -23,7 +25,11 @@ describe('loadEnv', () => {
   });
 
   it('en producción exige un proveedor de correo real', () => {
-    expect(() => loadEnv({ ...base, NODE_ENV: 'production', MAIL_DRIVER: 'file' })).toThrow(/MAIL_DRIVER/);
-    expect(() => loadEnv({ ...base, NODE_ENV: 'production', MAIL_DRIVER: 'resend' })).toThrow(/RESEND_API_KEY/);
+    expect(() => loadEnv({ ...base, NODE_ENV: 'production', MAIL_DRIVER: 'file' })).toThrow(
+      /MAIL_DRIVER/,
+    );
+    expect(() => loadEnv({ ...base, NODE_ENV: 'production', MAIL_DRIVER: 'resend' })).toThrow(
+      /RESEND_API_KEY/,
+    );
   });
 });
