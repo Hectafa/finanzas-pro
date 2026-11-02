@@ -3,7 +3,9 @@ import { ApiBody } from '@nestjs/swagger';
 import { z } from 'zod';
 import { Errors } from './errors';
 
-type SchemaObject = NonNullable<Extract<Parameters<typeof ApiBody>[0], { schema?: unknown }>['schema']>;
+type SchemaObject = NonNullable<
+  Extract<Parameters<typeof ApiBody>[0], { schema?: unknown }>['schema']
+>;
 
 /** Valida y normaliza con un esquema Zod. Las claves no declaradas se descartan. */
 export class ZodPipe<S extends z.ZodType> implements PipeTransform<unknown, z.output<S>> {
@@ -12,14 +14,20 @@ export class ZodPipe<S extends z.ZodType> implements PipeTransform<unknown, z.ou
   transform(value: unknown): z.output<S> {
     const result = this.schema.safeParse(value);
     if (!result.success) {
-      throw Errors.validation(result.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })));
+      throw Errors.validation(
+        result.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
+      );
     }
     return result.data;
   }
 }
 
 export function toOpenApi(schema: z.ZodType): SchemaObject {
-  return z.toJSONSchema(schema, { target: 'openapi-3.0', io: 'input', unrepresentable: 'any' }) as SchemaObject;
+  return z.toJSONSchema(schema, {
+    target: 'openapi-3.0',
+    io: 'input',
+    unrepresentable: 'any',
+  }) as SchemaObject;
 }
 
 /** Documenta el cuerpo en Swagger a partir del mismo esquema Zod que lo valida. */

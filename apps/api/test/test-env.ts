@@ -18,6 +18,7 @@ export function applyTestEnv(): void {
     DATABASE_MIGRATION_URL: TEST_DATABASE_MIGRATION_URL,
     JWT_ACCESS_SECRET: 'secreto-de-pruebas-que-no-se-usa-fuera-de-pruebas-0123456789',
     MAIL_DRIVER: 'memory',
+    STORAGE_DRIVER: 'memory',
     DOCS_ENABLED: 'false',
     THROTTLE_LIMIT: '100000',
     AUTH_THROTTLE_LIMIT: '100000',

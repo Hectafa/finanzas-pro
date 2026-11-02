@@ -12,7 +12,7 @@ import {
 } from '@finanzas/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Image, View } from 'react-native';
 import { Banner, Button, Chip, SegmentedButtons, Text, useTheme } from 'react-native-paper';
 import {
   DateField,
@@ -24,10 +24,12 @@ import {
   SelectField,
   styles,
 } from '../../../components/ui';
+import { ReceiptPickButtons, useReceiptUploader } from '../../../components/receipts';
 import { ApiError, NETWORK_ERROR } from '../../../lib/api';
 import { categoryOptions, transactionDirection } from '../../../lib/finance';
 import { formatMoney, normalizeAmountInput } from '../../../lib/format';
 import { newId } from '../../../lib/id';
+import type { ReceiptFile } from '../../../lib/receipts';
 import {
   useAccounts,
   useCategories,
@@ -108,6 +110,9 @@ export default function RegistrarScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saved, setSaved] = useState<TransactionDto | null>(null);
+  const [receipt, setReceipt] = useState<ReceiptFile | null>(null);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
+  const uploader = useReceiptUploader(currency);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -178,6 +183,19 @@ export default function RegistrarScreen() {
       // Nuevo id para la siguiente captura; se conservan tipo, cuenta y fecha para capturar en serie.
       setForm({ ...emptyForm(form.date, accountId), vatRate: form.vatRate });
       setShowMore(false);
+      setReceiptError(null);
+      if (receipt) {
+        // El movimiento ya quedó guardado: si la foto falla, se avisa y se agrega desde el detalle.
+        // Si está repetida, el diálogo de duplicado decide.
+        try {
+          await uploader.send(tx.id, receipt);
+        } catch (e) {
+          setReceiptError(
+            `El movimiento se guardó, pero el comprobante no: ${(e as Error).message}. Agrégalo desde “Ver”.`,
+          );
+        }
+        setReceipt(null);
+      }
     } catch (e) {
       if (e instanceof ApiError && e.code === 'IDEMPOTENCY_CONFLICT') {
         // Un intento anterior sí llegó al servidor con otros datos: no se pisa, se captura aparte.
@@ -234,6 +252,12 @@ export default function RegistrarScreen() {
           ? `${TRANSACTION_TYPE_LABELS[saved.type]} de ${formatMoney(saved.amount, saved.currency)} guardado · ${TRANSACTION_STATUS_LABELS[saved.status]}`
           : ''}
       </Banner>
+      {receiptError ? (
+        <Text variant="bodyMedium" style={{ color: theme.colors.error, marginBottom: 8 }}>
+          {receiptError}
+        </Text>
+      ) : null}
+      {uploader.dialog}
 
       <View style={[styles.row, { gap: 8, flexWrap: 'wrap' }]}>
         {TRANSACTION_TYPES.map((t) => (
@@ -376,13 +400,36 @@ export default function RegistrarScreen() {
           </Button>
         )}
 
+        <Text variant="labelLarge" style={styles.mt}>
+          Comprobante (opcional)
+        </Text>
+        {receipt ? (
+          <View style={[styles.row, styles.mtSmall, { gap: 12 }]}>
+            <Image
+              source={{ uri: receipt.uri }}
+              style={{ width: 64, height: 64, borderRadius: 8 }}
+              accessibilityLabel="Foto del comprobante"
+            />
+            <Text variant="bodyMedium" style={{ flex: 1 }} numberOfLines={1}>
+              {receipt.name}
+            </Text>
+            <Button onPress={() => setReceipt(null)} disabled={create.isPending}>
+              Quitar
+            </Button>
+          </View>
+        ) : (
+          <View style={styles.mtSmall}>
+            <ReceiptPickButtons onPicked={setReceipt} disabled={create.isPending} />
+          </View>
+        )}
+
         <Button
           mode="contained"
           icon="content-save-outline"
           style={styles.mtLarge}
           onPress={() => void submit()}
-          loading={create.isPending}
-          disabled={create.isPending}
+          loading={create.isPending || uploader.uploading}
+          disabled={create.isPending || uploader.uploading}
         >
           Guardar {TRANSACTION_TYPE_LABELS[type].toLowerCase()}
         </Button>

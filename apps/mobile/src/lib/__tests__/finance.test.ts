@@ -1,5 +1,13 @@
 import type { CategoryDto, TransactionDto } from '@finanzas/shared';
-import { categoryOptions, signedAmount, transactionAccounts, transactionTitle } from '../finance';
+import {
+  categoryOptions,
+  describeDuplicates,
+  receiptFileName,
+  resolveFileUrl,
+  signedAmount,
+  transactionAccounts,
+  transactionTitle,
+} from '../finance';
 
 const tx = (over: Partial<TransactionDto>): TransactionDto => ({
   id: 't1',
@@ -22,6 +30,7 @@ const tx = (over: Partial<TransactionDto>): TransactionDto => ({
   postedAt: null,
   voidedAt: null,
   voidReason: null,
+  attachmentCount: 0,
   version: 1,
   ...over,
 });
@@ -74,5 +83,42 @@ describe('categoryOptions', () => {
       'Insumos › Lácteos',
       'Renta',
     ]);
+  });
+});
+
+describe('comprobantes', () => {
+  it('nombra el archivo como .jpg, conservando el nombre original si existe', () => {
+    expect(receiptFileName('IMG_0042.HEIC')).toBe('IMG_0042.jpg');
+    expect(receiptFileName('ticket.café.png')).toBe('ticket.café.jpg');
+    expect(receiptFileName(null, 123)).toBe('comprobante-123.jpg');
+  });
+
+  it('resuelve URLs relativas contra la API y deja intactas las absolutas', () => {
+    expect(resolveFileUrl('/v1/files/c/a.jpg?exp=1&sig=x', 'http://192.168.1.5:3000')).toBe(
+      'http://192.168.1.5:3000/v1/files/c/a.jpg?exp=1&sig=x',
+    );
+    expect(resolveFileUrl('https://r2.example/a.jpg', 'http://api')).toBe(
+      'https://r2.example/a.jpg',
+    );
+  });
+
+  it('describe dónde está el duplicado sin revelar lo que el usuario no puede ver', () => {
+    expect(
+      describeDuplicates(
+        {
+          duplicates: [
+            {
+              visible: true,
+              transactionId: 't',
+              date: '2026-10-28',
+              amount: '116.00',
+              description: 'Costco',
+            },
+            { visible: false },
+          ],
+        },
+        'MXN',
+      ),
+    ).toEqual(['Costco · 28/10/2026 · $116.00', 'Un movimiento que no tienes permiso de ver']);
   });
 });

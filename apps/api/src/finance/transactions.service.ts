@@ -29,9 +29,29 @@ const withRelations = {
   toAccount: true,
   category: true,
   creator: { select: { id: true, fullName: true } },
+  _count: { select: { attachments: { where: { removedAt: null } } } },
 } satisfies Prisma.FinancialTransactionInclude;
 
 type TransactionRow = Prisma.FinancialTransactionGetPayload<{ include: typeof withRelations }>;
+
+/** Movimiento de la empresa visible para el usuario (con view_own, solo los propios). */
+export async function findVisibleTransaction(
+  tx: Tx,
+  t: TenantContext,
+  id: string,
+): Promise<TransactionRow> {
+  requireAny(t, 'transactions:view', 'transactions:view_own');
+  const row = await tx.financialTransaction.findFirst({
+    where: {
+      id,
+      companyId: t.companyId,
+      ...(t.permissions.has('transactions:view') ? {} : { createdBy: t.userId }),
+    },
+    include: withRelations,
+  });
+  if (!row) throw Errors.notFound('Movimiento no encontrado');
+  return row;
+}
 
 /** Huella de la solicitud: mismas claves en el mismo orden, sin importar cómo llegaron. */
 export function requestHash(input: CreateTransactionInput): string {
@@ -311,7 +331,7 @@ export class TransactionsService {
     input: UpdateTransactionInput,
   ): Promise<TransactionDto> {
     return this.db.tenant(t, async (tx) => {
-      const row = await this.visible(tx, t, id);
+      const row = await findVisibleTransaction(tx, t, id);
       const ownPending = row.createdBy === t.userId && row.status === 'PENDING_REVIEW';
       if (!t.permissions.has('transactions:update') && !ownPending) throw Errors.forbidden();
       if (row.status === 'VOIDED')
@@ -344,7 +364,7 @@ export class TransactionsService {
   }
 
   async get(t: TenantContext, id: string): Promise<TransactionDto> {
-    return toDto(await this.db.tenant(t, (tx) => this.visible(tx, t, id)));
+    return toDto(await this.db.tenant(t, (tx) => findVisibleTransaction(tx, t, id)));
   }
 
   async list(t: TenantContext, q: ListTransactionsQuery): Promise<TransactionPageDto> {
@@ -406,21 +426,6 @@ export class TransactionsService {
           ? encodeCursor(fromDbDate(last.transactionDate), last.id)
           : null,
     };
-  }
-
-  /** Movimiento de la empresa visible para el usuario (con view_own, solo los propios). */
-  private async visible(tx: Tx, t: TenantContext, id: string): Promise<TransactionRow> {
-    requireAny(t, 'transactions:view', 'transactions:view_own');
-    const row = await tx.financialTransaction.findFirst({
-      where: {
-        id,
-        companyId: t.companyId,
-        ...(t.permissions.has('transactions:view') ? {} : { createdBy: t.userId }),
-      },
-      include: withRelations,
-    });
-    if (!row) throw Errors.notFound('Movimiento no encontrado');
-    return row;
   }
 
   private async lock(tx: Tx, t: TenantContext, id: string): Promise<TransactionRow> {
@@ -507,6 +512,7 @@ function toDto(r: TransactionRow): TransactionDto {
     postedAt: r.postedAt?.toISOString() ?? null,
     voidedAt: r.voidedAt?.toISOString() ?? null,
     voidReason: r.voidReason,
+    attachmentCount: r._count.attachments,
     version: r.version,
   };
 }

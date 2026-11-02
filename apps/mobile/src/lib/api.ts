@@ -47,12 +47,18 @@ export interface RequestOptions {
  * (aunque varias solicitudes fallen al mismo tiempo) y repite la solicitud original.
  * El servidor rota el refresh token en cada uso, por eso nunca se envían dos renovaciones en paralelo.
  */
-export function createApiClient(baseUrl: string, session: ApiSessionPort, fetchImpl: typeof fetch = fetch) {
+export function createApiClient(
+  baseUrl: string,
+  session: ApiSessionPort,
+  fetchImpl: typeof fetch = fetch,
+) {
   let refreshing: Promise<boolean> | null = null;
 
   async function send(path: string, opts: RequestOptions): Promise<Response> {
     const headers: Record<string, string> = { Accept: 'application/json' };
-    if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
+    // FormData (archivos): el Content-Type con su "boundary" lo pone fetch.
+    const isForm = typeof FormData !== 'undefined' && opts.body instanceof FormData;
+    if (opts.body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
     if (!opts.anonymous) {
       const token = session.getAccessToken();
       if (token) headers.Authorization = `Bearer ${token}`;
@@ -71,10 +77,18 @@ export function createApiClient(baseUrl: string, session: ApiSessionPort, fetchI
       return await fetchImpl(`${baseUrl}/v1${path}${qs ? `?${qs}` : ''}`, {
         method: opts.method ?? 'GET',
         headers,
-        body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+        body: isForm
+          ? (opts.body as FormData)
+          : opts.body !== undefined
+            ? JSON.stringify(opts.body)
+            : undefined,
       });
     } catch {
-      throw new ApiError(0, NETWORK_ERROR, 'Sin conexión con el servidor. Revisa tu internet e intenta de nuevo');
+      throw new ApiError(
+        0,
+        NETWORK_ERROR,
+        'Sin conexión con el servidor. Revisa tu internet e intenta de nuevo',
+      );
     }
   }
 
@@ -82,7 +96,11 @@ export function createApiClient(baseUrl: string, session: ApiSessionPort, fetchI
     refreshing ??= (async () => {
       const refreshToken = session.getRefreshToken();
       if (!refreshToken) return false;
-      const res = await send('/auth/refresh', { method: 'POST', body: { refreshToken }, anonymous: true }).catch(() => null);
+      const res = await send('/auth/refresh', {
+        method: 'POST',
+        body: { refreshToken },
+        anonymous: true,
+      }).catch(() => null);
       if (!res) return false; // Sin red: no se cierra la sesión, se reintentará después.
       if (!res.ok) {
         await session.onSessionLost();
@@ -106,7 +124,12 @@ export function createApiClient(baseUrl: string, session: ApiSessionPort, fetchI
     const data = text ? (JSON.parse(text) as unknown) : undefined;
     if (!res.ok) {
       const err = (data as ApiErrorBody | undefined)?.error;
-      throw new ApiError(res.status, err?.code ?? 'HTTP_ERROR', err?.message ?? 'Ocurrió un error inesperado', err?.details);
+      throw new ApiError(
+        res.status,
+        err?.code ?? 'HTTP_ERROR',
+        err?.message ?? 'Ocurrió un error inesperado',
+        err?.details,
+      );
     }
     return data as T;
   }

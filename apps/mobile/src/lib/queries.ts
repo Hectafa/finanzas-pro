@@ -1,4 +1,5 @@
 import type {
+  AttachmentDto,
   CategoryDto,
   CompanyContextDto,
   CompanySummaryDto,
@@ -348,6 +349,59 @@ export function useVoidTransaction() {
       api.request<TransactionDto>(`/transactions/${id}/void`, {
         method: 'POST',
         body: { reason },
+        company: true,
+      }),
+    onSuccess: invalidate,
+  });
+}
+
+// ---------- Comprobantes ----------
+
+export function useAttachments(transactionId: string, enabled = true) {
+  const companyId = useCompanyKey();
+  return useQuery({
+    queryKey: ['attachments', companyId, transactionId],
+    queryFn: () =>
+      api.request<AttachmentDto[]>(`/transactions/${transactionId}/attachments`, {
+        company: true,
+      }),
+    enabled: enabled && !!companyId,
+    // Las URLs firmadas vencen a los 5 minutos: se renuevan antes.
+    staleTime: 2 * 60_000,
+    refetchInterval: 4 * 60_000,
+  });
+}
+
+/** Un comprobante cambia la lista del movimiento y su contador en Movimientos. */
+function useInvalidateAttachments() {
+  const qc = useQueryClient();
+  return () =>
+    Promise.all(
+      ['attachments', 'transactions', 'transaction'].map((key) =>
+        qc.invalidateQueries({ queryKey: [key] }),
+      ),
+    );
+}
+
+export function useUploadAttachment() {
+  const invalidate = useInvalidateAttachments();
+  return useMutation({
+    mutationFn: ({ transactionId, form }: { transactionId: string; form: FormData }) =>
+      api.request<AttachmentDto>(`/transactions/${transactionId}/attachments`, {
+        method: 'POST',
+        body: form,
+        company: true,
+      }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useRemoveAttachment() {
+  const invalidate = useInvalidateAttachments();
+  return useMutation({
+    mutationFn: ({ transactionId, id }: { transactionId: string; id: string }) =>
+      api.request<void>(`/transactions/${transactionId}/attachments/${id}/remove`, {
+        method: 'POST',
         company: true,
       }),
     onSuccess: invalidate,

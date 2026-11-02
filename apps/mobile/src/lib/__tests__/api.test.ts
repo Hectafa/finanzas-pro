@@ -17,7 +17,11 @@ const newTokens: AuthTokens = {
 };
 
 function makeSession(overrides: Partial<ApiSessionPort> = {}) {
-  const state = { access: 'acceso-viejo' as string | null, refresh: 'refresh-viejo' as string | null, lost: 0 };
+  const state = {
+    access: 'acceso-viejo' as string | null,
+    refresh: 'refresh-viejo' as string | null,
+    lost: 0,
+  };
   const port: ApiSessionPort = {
     getAccessToken: () => state.access,
     getRefreshToken: () => state.refresh,
@@ -79,7 +83,9 @@ describe('createApiClient', () => {
         return json(200, newTokens);
       }
       const auth = (init.headers as Record<string, string>).Authorization;
-      return auth === 'Bearer acceso-nuevo' ? json(200, { ok: true }) : json(401, { error: { code: 'SESSION_EXPIRED', message: 'x' } });
+      return auth === 'Bearer acceso-nuevo'
+        ? json(200, { ok: true })
+        : json(401, { error: { code: 'SESSION_EXPIRED', message: 'x' } });
     });
     const api = createApiClient('http://api', port, fetchMock as unknown as typeof fetch);
     await Promise.all([api.request('/a'), api.request('/b'), api.request('/c')]);
@@ -90,10 +96,15 @@ describe('createApiClient', () => {
     const { state, port } = makeSession();
     const fetchMock = jest
       .fn()
-      .mockResolvedValueOnce(json(401, { error: { code: 'SESSION_EXPIRED', message: 'Tu sesión expiró' } }))
+      .mockResolvedValueOnce(
+        json(401, { error: { code: 'SESSION_EXPIRED', message: 'Tu sesión expiró' } }),
+      )
       .mockResolvedValueOnce(json(401, { error: { code: 'SESSION_EXPIRED', message: 'x' } }));
     const api = createApiClient('http://api', port, fetchMock);
-    await expect(api.request('/auth/me')).rejects.toMatchObject({ status: 401, code: 'SESSION_EXPIRED' });
+    await expect(api.request('/auth/me')).rejects.toMatchObject({
+      status: 401,
+      code: 'SESSION_EXPIRED',
+    });
     expect(state.lost).toBe(1);
   });
 
@@ -107,17 +118,46 @@ describe('createApiClient', () => {
   });
 
   it('expone errores de validación por campo', async () => {
-    const fetchMock = jest.fn().mockResolvedValue(
-      json(400, { error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos', details: [{ path: 'email', message: 'Correo inválido' }] } }),
-    );
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValue(
+        json(400, {
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Datos inválidos',
+            details: [{ path: 'email', message: 'Correo inválido' }],
+          },
+        }),
+      );
     const api = createApiClient('http://api', makeSession().port, fetchMock);
-    const err = await api.request('/auth/register', { method: 'POST', body: {}, anonymous: true }).catch((e: unknown) => e);
+    const err = await api
+      .request('/auth/register', { method: 'POST', body: {}, anonymous: true })
+      .catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ApiError);
     expect((err as ApiError).fieldErrors).toEqual({ email: 'Correo inválido' });
   });
 
   it('204 devuelve undefined', async () => {
-    const api = createApiClient('http://api', makeSession().port, jest.fn().mockResolvedValue(new Response(null, { status: 204 })));
+    const api = createApiClient(
+      'http://api',
+      makeSession().port,
+      jest.fn().mockResolvedValue(new Response(null, { status: 204 })),
+    );
     await expect(api.request('/auth/logout', { method: 'POST' })).resolves.toBeUndefined();
+  });
+
+  it('envía FormData tal cual, sin forzar JSON (subida de archivos)', async () => {
+    const fetchMock = jest.fn().mockResolvedValue(json(201, { id: 'a1' }));
+    const api = createApiClient('http://api', makeSession().port, fetchMock);
+    const form = new FormData();
+    form.append('id', 'a1');
+    await api.request('/transactions/t1/attachments', {
+      method: 'POST',
+      body: form,
+      company: true,
+    });
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.body).toBe(form);
+    expect(init.headers['Content-Type']).toBeUndefined();
   });
 });

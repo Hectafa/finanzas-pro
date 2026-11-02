@@ -1,6 +1,22 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query, Res } from '@nestjs/common';
-import { ApiQuery, ApiTags } from '@nestjs/swagger';
 import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBody, ApiConsumes, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ATTACHMENT_MAX_BYTES,
+  uploadAttachmentSchema,
+  type UploadAttachmentInput,
   createCategorySchema,
   createFinancialAccountSchema,
   createTransactionSchema,
@@ -24,6 +40,7 @@ import { Authorize, CurrentTenant, type TenantContext } from '../common/request-
 import { ApiZodBody, uuidParam, ZodPipe } from '../common/zod';
 import { DbService } from '../db/db.service';
 import { AccountsService } from './accounts.service';
+import { AttachmentsService, type UploadedFile as UploadedFileType } from './attachments.service';
 import { CategoriesService } from './categories.service';
 import { LedgerService } from './ledger.service';
 import { TransactionsService } from './transactions.service';
@@ -184,6 +201,64 @@ export class TransactionsController {
     @Body(new ZodPipe(voidTransactionSchema)) body: VoidTransactionInput,
   ) {
     return this.transactions.void(t, id, body.reason);
+  }
+}
+
+@ApiTags('Comprobantes')
+@Controller('transactions/:transactionId/attachments')
+export class AttachmentsController {
+  constructor(private readonly attachments: AttachmentsService) {}
+
+  @Get()
+  @Authorize()
+  list(
+    @CurrentTenant() t: TenantContext,
+    @Param('transactionId', uuidParam) transactionId: string,
+  ) {
+    return this.attachments.list(t, transactionId);
+  }
+
+  /** multipart/form-data: `file` y los campos de uploadAttachmentSchema. 201 nuevo; 200 reenvío. */
+  @Post()
+  @Authorize()
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file', 'id'],
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        id: { type: 'string', format: 'uuid' },
+        duplicateReason: { type: 'string' },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: ATTACHMENT_MAX_BYTES, files: 1, fields: 5 },
+    }),
+  )
+  async upload(
+    @CurrentTenant() t: TenantContext,
+    @Param('transactionId', uuidParam) transactionId: string,
+    @Body(new ZodPipe(uploadAttachmentSchema)) body: UploadAttachmentInput,
+    @UploadedFile() file: UploadedFileType | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { created, attachment } = await this.attachments.upload(t, transactionId, body, file);
+    res.status(created ? 201 : 200);
+    return attachment;
+  }
+
+  @Post(':attachmentId/remove')
+  @Authorize()
+  @HttpCode(204)
+  async remove(
+    @CurrentTenant() t: TenantContext,
+    @Param('transactionId', uuidParam) transactionId: string,
+    @Param('attachmentId', uuidParam) attachmentId: string,
+  ) {
+    await this.attachments.remove(t, transactionId, attachmentId);
   }
 }
 

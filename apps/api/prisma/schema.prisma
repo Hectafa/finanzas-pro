@@ -29,21 +29,22 @@ enum InvitationStatus {
 }
 
 model User {
-  id                String                 @id @db.Uuid
-  email             String                 @unique @db.VarChar(254)
-  passwordHash      String                 @map("password_hash")
-  fullName          String                 @map("full_name") @db.VarChar(120)
-  status            UserStatus             @default(ACTIVE)
-  emailVerifiedAt   DateTime?              @map("email_verified_at") @db.Timestamptz(3)
-  failedLoginCount  Int                    @default(0) @map("failed_login_count")
-  lockedUntil       DateTime?              @map("locked_until") @db.Timestamptz(3)
-  passwordChangedAt DateTime               @default(now()) @map("password_changed_at") @db.Timestamptz(3)
-  createdAt         DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt         DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                String                  @id @db.Uuid
+  email             String                  @unique @db.VarChar(254)
+  passwordHash      String                  @map("password_hash")
+  fullName          String                  @map("full_name") @db.VarChar(120)
+  status            UserStatus              @default(ACTIVE)
+  emailVerifiedAt   DateTime?               @map("email_verified_at") @db.Timestamptz(3)
+  failedLoginCount  Int                     @default(0) @map("failed_login_count")
+  lockedUntil       DateTime?               @map("locked_until") @db.Timestamptz(3)
+  passwordChangedAt DateTime                @default(now()) @map("password_changed_at") @db.Timestamptz(3)
+  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
   sessions          Session[]
   memberships       CompanyMembership[]
   resetTokens       PasswordResetToken[]
-  transactions      FinancialTransaction[] @relation("TransactionCreator")
+  transactions      FinancialTransaction[]  @relation("TransactionCreator")
+  attachments       TransactionAttachment[] @relation("AttachmentCreator")
 
   @@map("users")
 }
@@ -350,43 +351,69 @@ model TransactionCategory {
 /// El "movimiento" que ve el usuario. Su efecto contable vive en journal_entries
 /// (source_type = 'TRANSACTION', source_id = id).
 model FinancialTransaction {
-  id              String               @id @db.Uuid
-  companyId       String               @map("company_id") @db.Uuid
+  id              String                  @id @db.Uuid
+  companyId       String                  @map("company_id") @db.Uuid
   type            TransactionType
   status          TransactionStatus
-  transactionDate DateTime             @map("transaction_date") @db.Date
-  amount          Decimal              @db.Decimal(19, 4)
-  vatRate         String?              @map("vat_rate") @db.VarChar(4)
-  vatAmount       Decimal              @default(0) @map("vat_amount") @db.Decimal(19, 4)
-  currency        String               @db.Char(3)
-  accountId       String               @map("account_id") @db.Uuid
-  toAccountId     String?              @map("to_account_id") @db.Uuid
-  categoryId      String?              @map("category_id") @db.Uuid
-  description     String?              @db.VarChar(200)
-  reference       String?              @db.VarChar(60)
-  counterparty    String?              @db.VarChar(120)
-  notes           String?              @db.VarChar(1000)
+  transactionDate DateTime                @map("transaction_date") @db.Date
+  amount          Decimal                 @db.Decimal(19, 4)
+  vatRate         String?                 @map("vat_rate") @db.VarChar(4)
+  vatAmount       Decimal                 @default(0) @map("vat_amount") @db.Decimal(19, 4)
+  currency        String                  @db.Char(3)
+  accountId       String                  @map("account_id") @db.Uuid
+  toAccountId     String?                 @map("to_account_id") @db.Uuid
+  categoryId      String?                 @map("category_id") @db.Uuid
+  description     String?                 @db.VarChar(200)
+  reference       String?                 @db.VarChar(60)
+  counterparty    String?                 @db.VarChar(120)
+  notes           String?                 @db.VarChar(1000)
   /// sha256 de la solicitud original: un reintento con el mismo id y otro contenido se rechaza.
-  requestHash     String               @map("request_hash") @db.Char(64)
-  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
-  createdBy       String               @map("created_by") @db.Uuid
-  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
-  updatedBy       String?              @map("updated_by") @db.Uuid
-  postedAt        DateTime?            @map("posted_at") @db.Timestamptz(3)
-  postedBy        String?              @map("posted_by") @db.Uuid
-  voidedAt        DateTime?            @map("voided_at") @db.Timestamptz(3)
-  voidedBy        String?              @map("voided_by") @db.Uuid
-  voidReason      String?              @map("void_reason") @db.VarChar(300)
-  version         Int                  @default(1)
-  account         FinancialAccount     @relation("TransactionAccount", fields: [accountId], references: [id], onDelete: Restrict)
-  toAccount       FinancialAccount?    @relation("TransactionToAccount", fields: [toAccountId], references: [id], onDelete: Restrict)
-  category        TransactionCategory? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  creator         User                 @relation("TransactionCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  requestHash     String                  @map("request_hash") @db.Char(64)
+  createdAt       DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdBy       String                  @map("created_by") @db.Uuid
+  updatedAt       DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedBy       String?                 @map("updated_by") @db.Uuid
+  postedAt        DateTime?               @map("posted_at") @db.Timestamptz(3)
+  postedBy        String?                 @map("posted_by") @db.Uuid
+  voidedAt        DateTime?               @map("voided_at") @db.Timestamptz(3)
+  voidedBy        String?                 @map("voided_by") @db.Uuid
+  voidReason      String?                 @map("void_reason") @db.VarChar(300)
+  version         Int                     @default(1)
+  account         FinancialAccount        @relation("TransactionAccount", fields: [accountId], references: [id], onDelete: Restrict)
+  toAccount       FinancialAccount?       @relation("TransactionToAccount", fields: [toAccountId], references: [id], onDelete: Restrict)
+  category        TransactionCategory?    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  creator         User                    @relation("TransactionCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  attachments     TransactionAttachment[]
 
   @@index([companyId, transactionDate(sort: Desc), id(sort: Desc)])
   @@index([companyId, status])
   @@index([companyId, createdBy])
   @@map("financial_transactions")
+}
+
+/// Comprobante (foto o PDF) de un movimiento. El archivo vive en el almacenamiento (puerto Storage);
+/// aquí solo su clave y metadatos. No se borra físicamente: se retira (removed_at).
+/// sha256 no es único: un duplicado se admite solo con confirmación explícita y motivo (duplicate_reason).
+model TransactionAttachment {
+  id              String               @id @db.Uuid
+  companyId       String               @map("company_id") @db.Uuid
+  transactionId   String               @map("transaction_id") @db.Uuid
+  storageKey      String               @unique @map("storage_key") @db.VarChar(200)
+  fileName        String               @map("file_name") @db.VarChar(160)
+  mimeType        String               @map("mime_type") @db.VarChar(60)
+  sizeBytes       Int                  @map("size_bytes")
+  sha256          String               @db.Char(64)
+  duplicateReason String?              @map("duplicate_reason") @db.VarChar(300)
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdBy       String               @map("created_by") @db.Uuid
+  removedAt       DateTime?            @map("removed_at") @db.Timestamptz(3)
+  removedBy       String?              @map("removed_by") @db.Uuid
+  transaction     FinancialTransaction @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  creator         User                 @relation("AttachmentCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@index([companyId, sha256])
+  @@index([transactionId])
+  @@map("transaction_attachments")
 }
 
 /// Bitácora append-only. El rol de la API no tiene UPDATE/DELETE sobre esta tabla.

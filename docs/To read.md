@@ -1,21 +1,22 @@
 # To read — dónde nos quedamos
 
-> Actualizado: 2026-10-31. Léelo antes de continuar.
-> Siguiente paso acordado: **Fase 2, bloque C (comprobantes)**. El bloque B está en el PR `fase-2-pantallas` (pendiente de fusionar).
+> Actualizado: 2026-11-01. Léelo antes de continuar.
+> Siguiente paso acordado: **bloque D (offline en el teléfono)**, y después la lectura de tickets con IA. Bloque B fusionado (PR #4); bloque C en PR #5.
 
 ## 1. Estado en una línea
 
-La **Fase 1 está cerrada** (PR #1 y #2 fusionados). Del **bloque A de la Fase 2** (núcleo contable de la API) está fusionado el PR #3. El **bloque B (pantallas)** está terminado, revisado por el usuario en web y en PR (`fase-2-pantallas`). **Faltan los bloques C y D.**
+La **Fase 1 está cerrada** (PR #1 y #2 fusionados). Del **bloque A de la Fase 2** (núcleo contable de la API) está fusionado el PR #3. El **bloque B (pantallas)** está terminado, revisado por el usuario en web y en PR (`fase-2-pantallas`). El **bloque B** está fusionado (PR #4) y el **bloque C (comprobantes)** está en el PR #5, revisado por el usuario en web y teléfono. **Falta el bloque D.**
 
 | Rama / PR | Contenido | Estado |
 |---|---|---|
 | PR #1 `fase-1-fundacion` | Auth, empresas, roles, RLS, auditoría, dashboard inicial, app Expo | Fusionado |
 | PR #2 `fase-1-cierre` | ESLint y reglas de dinero, edición de roles personalizados, versión web | Fusionado |
 | PR #3 `fase-2-finanzas` | Libro contable, cuentas, categorías, movimientos, dashboard con cifras reales | Fusionado |
-| PR #4 `fase-2-pantallas` | Bloque B: cuentas, categorías, Registrar, Movimientos, detalle, Inicio | Abierto |
-| `main` | Contiene PR #1 a #3 | CI en verde |
+| PR #4 `fase-2-pantallas` | Bloque B: cuentas, categorías, Registrar, Movimientos, detalle, Inicio | Fusionado |
+| PR #5 `fase-2-comprobantes` | Bloque C: comprobantes (API y app) | Abierto |
+| `main` | Contiene PR #1 a #4 | CI en verde |
 
-Pruebas automatizadas: **185** (shared 27, mobile 23, API 135). Lint y tipos limpios.
+Pruebas automatizadas: **202** (shared 27, mobile 27, API 148). Lint y tipos limpios.
 
 ## 2. Cómo levantar todo mañana
 
@@ -33,7 +34,7 @@ Pruebas automatizadas: **185** (shared 27, mobile 23, API 135). Lint y tipos lim
 
 - **Usuarios demo:** `propietario@demo.finanzaspro.test` y `empleado@demo.finanzaspro.test`, ambos con contraseña `demo-finanzas-2026`.
 - **Datos demo:** la "Cafetería Demo" ya tiene cuentas (Caja, BBVA, Terminal Clip), ventas, gastos, una transferencia y un gasto del empleado por revisar. El dashboard muestra cifras reales.
-- **`.env`:** `apps/api/.env` y `apps/mobile/.env` ya existen localmente; no se suben al repo. La web usa `EXPO_PUBLIC_API_URL=http://localhost:3000`. Para el teléfono, usa la IP de la PC.
+- **`.env`:** `apps/api/.env` y `apps/mobile/.env` ya existen localmente; no se suben al repo. La web usa `EXPO_PUBLIC_API_URL=http://localhost:3000`. Para el teléfono, usa la IP de la PC (hoy `apps/mobile/.env` apunta a `http://192.168.1.187:3000`, que sirve para web y teléfono). Con Expo Go: `pnpm mobile -- -c` y escanear el QR; la red de Windows debe ser privada o tener abiertos los puertos 3000 y 8081.
 
 ## 3. Lo que ya está hecho
 
@@ -68,14 +69,32 @@ Pruebas automatizadas: **185** (shared 27, mobile 23, API 135). Lint y tipos lim
 - Revisado por el usuario en la web (2026-11-01). Falta probarlo en un teléfono real.
 - La prueba dejó en la Cafetería Demo una cuenta "MP renombrada …" con saldo 250.50, y un gasto y una transferencia anulados.
 
+### Fase 2, bloque C (comprobantes, PR `fase-2-comprobantes`)
+- **Tabla `transaction_attachments`** (migración `20261101120000_attachments`):
+  - RLS por empresa y trigger que exige la misma empresa que el movimiento.
+  - El rol de la API solo puede actualizar `removed_at` y `removed_by`, y no puede borrar.
+- **Puerto `Storage`** (`apps/api/src/storage/`):
+  - `local` guarda en disco, en `apps/api/.storage/` (ignorada por git); `memory` es para pruebas. R2/S3 se agrega antes de producción.
+  - URLs firmadas con HMAC que vencen en 5 min (`SIGNED_URL_TTL_SECONDS`), servidas por `GET /v1/files/...`. La llave se deriva de `JWT_ACCESS_SECRET`.
+- **Endpoints:** `GET|POST /v1/transactions/:id/attachments` y `POST .../attachments/:attachmentId/remove`.
+  - El tipo se verifica por el contenido (JPG, PNG, WebP o PDF); HEIC se rechaza con un mensaje claro. Máximo 10 MB.
+  - Idempotencia por `id` generado en el dispositivo.
+  - **Duplicados por `sha256`:** responde 409 `DUPLICATE_ATTACHMENT` con dónde está ya el archivo, y solo muestra los datos si el usuario puede ver ese movimiento. Para adjuntarlo hay que confirmarlo con `duplicateReason`, que queda auditado.
+  - Adjunta quien tiene `transactions:update` o quien capturó el movimiento. No se adjunta a movimientos anulados.
+- `TransactionDto.attachmentCount`: Movimientos muestra "N comprobantes".
+- **App:**
+  - Foto con cámara o galería (en web, solo elegir archivo). Se convierte a JPG de hasta 2000 px, lo que también resuelve el HEIC del iPhone.
+  - Comprobante opcional en Registrar. En el detalle: miniaturas, visor, agregar y retirar.
+  - Diálogo de duplicado con motivo.
+- Corregido: multer leía el nombre del archivo como Latin-1 ("café" llegaba como "cafÃ©").
+- Verificado contra la API local con disco (subir, descargar, duplicado, retirar) y revisado por el usuario en web y en el teléfono con Expo Go (2026-11-01).
+
 ## 4. Faltantes
 
 ### Fase 2 — por hacer, en este orden
 - [x] **Bloque B: pantallas.** Hecho y revisado en web; falta probarlo en teléfono.
-- [ ] **Bloque C: comprobantes.**
-  - Puerto `Storage` con **disco local en desarrollo** (decidido), URLs firmadas de corta vida y validación de tipo y tamaño.
-  - Detección de duplicados por `sha256` con confirmación explícita.
-  - Subida desde cámara o galería.
+- [x] **Bloque C: comprobantes.** Hecho y revisado en web y teléfono (PR #5).
+  - Pendiente menor: adjuntar PDF desde la app (la API ya lo acepta; la app solo sube fotos).
 - [ ] **Bloque D: offline en el teléfono.**
   - SQLite cifrada (SQLCipher) con clave en SecureStore, y una cola de salida (*outbox*) con reintentos.
   - Sincronización usando la idempotencia que ya existe.
@@ -83,6 +102,12 @@ Pruebas automatizadas: **185** (shared 27, mobile 23, API 135). Lint y tipos lim
   - Requiere **development build con EAS** (decidido): cuenta gratuita en expo.dev. Para iPhone se necesita cuenta de Apple Developer.
   - **La web queda solo en línea** (decidido): sin red, avisa y no captura.
 - [ ] **Pruebas E2E en el teléfono con Maestro**, junto con el offline.
+- [ ] **Lectura de tickets con IA (adelanto de la Fase 5, decidido el 2026-11-01): va justo después del bloque D.**
+  - Flujo: foto → la IA lee importe, fecha, proveedor, IVA y sugiere categoría → el usuario revisa y corrige → se guarda como gasto (o ingreso). Nada se registra sin confirmación.
+  - Requiere subir la foto **antes** de que exista el movimiento (borrador) y ligarla al guardar. Hoy el comprobante exige un movimiento existente.
+  - Sin red, la foto se guarda en la cola offline y se lee al reconectar.
+  - Claude con visión detrás de una capa intercambiable (D12). El texto del ticket es dato no confiable y la salida se valida con Zod. Límite de costo por empresa.
+  - **El usuario aún no tiene clave de la API de Anthropic:** empezar con un lector simulado y conectar Claude cuando la tenga (solo en `apps/api/.env`).
 - [ ] Actualizar `docs/fase-0-analisis-y-diseno.md` §13 y crear `docs/fase-2-finanzas.md` al cerrar la fase.
 
 ### Pendientes de la Fase 1 (no bloquean)

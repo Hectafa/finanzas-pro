@@ -14,13 +14,22 @@ export class AppError extends HttpException {
 
 export const Errors = {
   validation: (details: unknown) =>
-    new AppError(HttpStatus.BAD_REQUEST, 'VALIDATION_ERROR', 'Los datos enviados no son válidos', details),
+    new AppError(
+      HttpStatus.BAD_REQUEST,
+      'VALIDATION_ERROR',
+      'Los datos enviados no son válidos',
+      details,
+    ),
   unauthorized: (message = 'Inicia sesión para continuar') =>
     new AppError(HttpStatus.UNAUTHORIZED, 'UNAUTHORIZED', message),
   invalidCredentials: () =>
     new AppError(HttpStatus.UNAUTHORIZED, 'INVALID_CREDENTIALS', 'Correo o contraseña incorrectos'),
   sessionExpired: () =>
-    new AppError(HttpStatus.UNAUTHORIZED, 'SESSION_EXPIRED', 'Tu sesión expiró. Inicia sesión de nuevo'),
+    new AppError(
+      HttpStatus.UNAUTHORIZED,
+      'SESSION_EXPIRED',
+      'Tu sesión expiró. Inicia sesión de nuevo',
+    ),
   accountLocked: (until: Date) =>
     new AppError(
       HttpStatus.TOO_MANY_REQUESTS,
@@ -31,7 +40,10 @@ export const Errors = {
   forbidden: (message = 'No tienes permiso para realizar esta acción') =>
     new AppError(HttpStatus.FORBIDDEN, 'FORBIDDEN', message),
   /** Se usa también cuando el recurso existe pero pertenece a otra empresa: no revela su existencia. */
-  notFound: (message = 'Recurso no encontrado') => new AppError(HttpStatus.NOT_FOUND, 'NOT_FOUND', message),
-  conflict: (code: string, message: string) => new AppError(HttpStatus.CONFLICT, code, message),
-  badRequest: (code: string, message: string) => new AppError(HttpStatus.BAD_REQUEST, code, message),
+  notFound: (message = 'Recurso no encontrado') =>
+    new AppError(HttpStatus.NOT_FOUND, 'NOT_FOUND', message),
+  conflict: (code: string, message: string, details?: unknown) =>
+    new AppError(HttpStatus.CONFLICT, code, message, details),
+  badRequest: (code: string, message: string) =>
+    new AppError(HttpStatus.BAD_REQUEST, code, message),
 };

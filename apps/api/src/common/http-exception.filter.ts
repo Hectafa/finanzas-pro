@@ -1,4 +1,11 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { ThrottlerException } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { Prisma } from '../generated/prisma/client';
@@ -31,7 +38,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (exception instanceof AppError) {
       status = exception.getStatus();
-      body = { code: exception.code, message: (exception.getResponse() as { error: { message: string } }).error.message, details: exception.details };
+      body = {
+        code: exception.code,
+        message: (exception.getResponse() as { error: { message: string } }).error.message,
+        details: exception.details,
+      };
     } else if (exception instanceof ThrottlerException) {
       status = HttpStatus.TOO_MANY_REQUESTS;
       body = { code: 'TOO_MANY_REQUESTS', message: GENERIC_CODES[429]![1] };
@@ -39,10 +50,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
       status = exception.getStatus();
       const [code, message] = GENERIC_CODES[status] ?? ['HTTP_ERROR', 'Error en la solicitud'];
       body = { code, message };
-    } else if (exception instanceof Prisma.PrismaClientKnownRequestError && exception.code === 'P2002') {
+    } else if (
+      exception instanceof Prisma.PrismaClientKnownRequestError &&
+      exception.code === 'P2002'
+    ) {
       status = HttpStatus.CONFLICT;
       body = { code: 'CONFLICT', message: GENERIC_CODES[409]![1] };
-    } else if (exception instanceof Prisma.PrismaClientKnownRequestError && exception.code === 'P2025') {
+    } else if (
+      exception instanceof Prisma.PrismaClientKnownRequestError &&
+      exception.code === 'P2025'
+    ) {
       status = HttpStatus.NOT_FOUND;
       body = { code: 'NOT_FOUND', message: GENERIC_CODES[404]![1] };
     } else {
@@ -52,7 +69,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (status >= 500) {
       // Solo nombre y stack: nunca el cuerpo de la solicitud (puede contener contraseñas o tokens).
       const err = exception instanceof Error ? exception : new Error(String(exception));
-      this.logger.error({ requestId, err: { name: err.name, message: err.message, stack: err.stack } }, 'Error no controlado');
+      this.logger.error(
+        { requestId, err: { name: err.name, message: err.message, stack: err.stack } },
+        'Error no controlado',
+      );
     }
 
     res.status(status).json({ error: { ...body, requestId } });

@@ -226,6 +226,8 @@ export interface TransactionDto {
   postedAt: string | null;
   voidedAt: string | null;
   voidReason: string | null;
+  /** Comprobantes vigentes (no retirados). */
+  attachmentCount: number;
   version: number;
 }
 
@@ -242,4 +244,63 @@ export interface LedgerVerificationDto {
   /** Cada movimiento confirmado tiene su asiento y cada anulado, su reversa. */
   consistent: boolean;
   inconsistentTransactionIds: string[];
+}
+
+// ---------- Comprobantes ----------
+
+/** Tipos admitidos. El servidor los verifica por el contenido del archivo, no por lo que declara el cliente. */
+export const ATTACHMENT_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/pdf',
+] as const;
+export type AttachmentMimeType = (typeof ATTACHMENT_MIME_TYPES)[number];
+
+/** Tamaño máximo de un comprobante. La app reduce las fotos antes de subirlas. */
+export const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Campos que acompañan al archivo (multipart). `id` lo genera el dispositivo: reenviar el mismo
+ * comprobante no lo duplica. `duplicateReason` confirma subir un archivo que ya existe en la empresa.
+ */
+export const uploadAttachmentSchema = z.object({
+  id: z.uuid('Identificador inválido'),
+  duplicateReason: z
+    .string()
+    .trim()
+    .min(3, 'Explica brevemente por qué se repite')
+    .max(300)
+    .optional(),
+});
+export type UploadAttachmentInput = z.infer<typeof uploadAttachmentSchema>;
+
+export interface AttachmentDto {
+  id: string;
+  transactionId: string;
+  fileName: string;
+  mimeType: AttachmentMimeType;
+  sizeBytes: number;
+  sha256: string;
+  /** Motivo con el que se confirmó un archivo repetido; null si no es duplicado. */
+  duplicateReason: string | null;
+  createdBy: { id: string; fullName: string };
+  createdAt: string;
+  /** URL firmada de corta vida. Si es relativa ("/v1/..."), se resuelve contra la URL de la API. */
+  url: string;
+  urlExpiresAt: string;
+}
+
+/** Detalle del error 409 DUPLICATE_ATTACHMENT: dónde está ya ese mismo archivo. */
+export interface DuplicateAttachmentDetails {
+  duplicates: Array<
+    | {
+        visible: true;
+        transactionId: string;
+        date: string;
+        amount: string;
+        description: string | null;
+      }
+    | { visible: false }
+  >;
 }

@@ -34,6 +34,12 @@ export const envSchema = z
           .filter(Boolean),
       ),
     DOCS_ENABLED: bool.default(true),
+    /** Comprobantes: local (disco, desarrollo) o memory (pruebas). R2/S3 se agrega antes de producción. */
+    STORAGE_DRIVER: z.enum(['local', 'memory']).default('local'),
+    /** Carpeta del almacenamiento local, relativa a apps/api. Ignorada por git. */
+    STORAGE_DIR: z.string().min(1).default('.storage'),
+    /** Vigencia de las URLs firmadas para ver un comprobante. */
+    SIGNED_URL_TTL_SECONDS: z.coerce.number().int().min(30).max(3600).default(300),
     THROTTLE_LIMIT: z.coerce.number().int().min(1).default(120),
     AUTH_THROTTLE_LIMIT: z.coerce.number().int().min(1).default(10),
   })
@@ -43,6 +49,13 @@ export const envSchema = z
         code: 'custom',
         path: ['RESEND_API_KEY'],
         message: 'Requerido con MAIL_DRIVER=resend',
+      });
+    }
+    if (env.NODE_ENV === 'production' && env.STORAGE_DRIVER === 'memory') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['STORAGE_DRIVER'],
+        message: 'El almacenamiento en memoria es solo para pruebas',
       });
     }
     if (env.NODE_ENV === 'production' && env.MAIL_DRIVER !== 'resend') {

@@ -1,4 +1,9 @@
-import { createParamDecorator, ExecutionContext, SetMetadata, applyDecorators } from '@nestjs/common';
+import {
+  createParamDecorator,
+  ExecutionContext,
+  SetMetadata,
+  applyDecorators,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import type { Permission } from '@finanzas/shared';
 import type { Request } from 'express';
@@ -16,7 +21,11 @@ export interface TenantContext extends AuthContext {
   permissions: ReadonlySet<string>;
 }
 
-export type AppRequest = Request & { id?: string | number; auth?: AuthContext; tenant?: TenantContext };
+export type AppRequest = Request & {
+  id?: string | number;
+  auth?: AuthContext;
+  tenant?: TenantContext;
+};
 
 export const IS_PUBLIC = 'finanzas:isPublic';
 export const COMPANY_SCOPE = 'finanzas:companyScope';
@@ -39,14 +48,18 @@ export const Authorize = (...permissions: Permission[]) =>
     ApiBearerAuth(),
   );
 
-export const CurrentAuth = createParamDecorator((_: unknown, ctx: ExecutionContext): AuthContext => {
-  const req = ctx.switchToHttp().getRequest<AppRequest>();
-  if (!req.auth) throw new Error('CurrentAuth usado en una ruta pública');
-  return req.auth;
-});
+export const CurrentAuth = createParamDecorator(
+  (_: unknown, ctx: ExecutionContext): AuthContext => {
+    const req = ctx.switchToHttp().getRequest<AppRequest>();
+    if (!req.auth) throw new Error('CurrentAuth usado en una ruta pública');
+    return req.auth;
+  },
+);
 
-export const CurrentTenant = createParamDecorator((_: unknown, ctx: ExecutionContext): TenantContext => {
-  const req = ctx.switchToHttp().getRequest<AppRequest>();
-  if (!req.tenant) throw new Error('CurrentTenant usado en una ruta sin @Authorize');
-  return req.tenant;
-});
+export const CurrentTenant = createParamDecorator(
+  (_: unknown, ctx: ExecutionContext): TenantContext => {
+    const req = ctx.switchToHttp().getRequest<AppRequest>();
+    if (!req.tenant) throw new Error('CurrentTenant usado en una ruta sin @Authorize');
+    return req.tenant;
+  },
+);
