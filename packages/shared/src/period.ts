@@ -74,6 +74,16 @@ export function resolvePeriod(
   };
 }
 
+/** Hoy (YYYY-MM-DD) en la zona horaria de la empresa. La API y la app usan la misma regla. */
+export function todayIn(timeZone: string, now: Date = new Date()): string {
+  return DateTime.fromJSDate(now).setZone(timeZone).toISODate()!;
+}
+
+/** Suma (o resta) días a una fecha de negocio YYYY-MM-DD. */
+export function addDays(isoDate: string, days: number): string {
+  return DateTime.fromISO(isoDate).plus({ days }).toISODate()!;
+}
+
 export function isValidTimeZone(zone: string): boolean {
   return DateTime.local().setZone(zone).isValid;
 }

@@ -2,9 +2,9 @@ import type { PeriodPreset } from '@finanzas/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
-import { Chip, SegmentedButtons, Text, useTheme } from 'react-native-paper';
+import { Banner, Chip, SegmentedButtons, Text, useTheme } from 'react-native-paper';
 import { ErrorState, Loading, MetricCard, styles } from '../../../components/ui';
-import { formatDateRange } from '../../../lib/format';
+import { formatDateRange, formatMoney } from '../../../lib/format';
 import { useCurrentCompany, useDashboard } from '../../../lib/queries';
 
 const PERIODS: { value: PeriodPreset; label: string }[] = [
@@ -84,10 +84,41 @@ export default function InicioScreen() {
                 {formatDateRange(dashboard.data.period.fromDate, dashboard.data.period.toDate)} ·{' '}
                 {dashboard.data.currency}
               </Text>
+              {dashboard.data.pendingReview.count > 0 ? (
+                <Banner
+                  visible
+                  icon="progress-clock"
+                  style={styles.mt}
+                  actions={[
+                    {
+                      label: 'Revisar',
+                      onPress: () =>
+                        router.push({
+                          pathname: '/movimientos',
+                          params: { status: 'PENDING_REVIEW' },
+                        }),
+                    },
+                  ]}
+                >
+                  {dashboard.data.pendingReview.count === 1
+                    ? '1 movimiento por revisar'
+                    : `${dashboard.data.pendingReview.count} movimientos por revisar`}{' '}
+                  (ingresos{' '}
+                  {formatMoney(dashboard.data.pendingReview.income, dashboard.data.currency)},
+                  gastos{' '}
+                  {formatMoney(dashboard.data.pendingReview.expenses, dashboard.data.currency)}). No
+                  están incluidos en las cifras.
+                </Banner>
+              ) : null}
               <View style={[styles.grid, styles.mt]}>
                 <MetricCard
                   title="Dinero disponible"
                   metric={dashboard.data.metrics.availableCash}
+                  currency={dashboard.data.currency}
+                />
+                <MetricCard
+                  title="Por depositar"
+                  metric={dashboard.data.metrics.undeposited}
                   currency={dashboard.data.currency}
                 />
                 <MetricCard

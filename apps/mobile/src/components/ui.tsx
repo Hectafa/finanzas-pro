@@ -1,18 +1,24 @@
 import type { MetricDto } from '@finanzas/shared';
-import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View, type KeyboardTypeOptions } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { Pressable, ScrollView, StyleSheet, View, type KeyboardTypeOptions } from 'react-native';
 import {
   ActivityIndicator,
   Banner,
+  Button,
   Card,
+  Chip,
+  Dialog,
   HelperText,
   Icon,
+  List,
+  Portal,
   Text,
   TextInput,
   useTheme,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { formatMoney, metricStatusLabel } from '../lib/format';
+import { addDays } from '@finanzas/shared';
+import { formatDate, formatMoney, metricStatusLabel, parseDisplayDate } from '../lib/format';
 
 /** Ancho máximo del contenido en pantallas grandes (computadora, tableta): evita líneas y formularios estirados. */
 export const CONTENT_MAX_WIDTH = 960;
@@ -53,6 +59,10 @@ export function Field(props: {
   secure?: boolean;
   keyboardType?: KeyboardTypeOptions;
   autoComplete?: 'email' | 'password' | 'new-password' | 'name' | 'off';
+  multiline?: boolean;
+  placeholder?: string;
+  /** Texto fijo antes del valor, p. ej. "$" en importes. */
+  prefix?: string;
 }) {
   return (
     <View>
@@ -65,6 +75,9 @@ export function Field(props: {
         secureTextEntry={props.secure}
         keyboardType={props.keyboardType}
         autoComplete={props.autoComplete}
+        multiline={props.multiline}
+        placeholder={props.placeholder}
+        left={props.prefix ? <TextInput.Affix text={props.prefix} /> : undefined}
         autoCapitalize={
           props.keyboardType === 'email-address' || props.secure ? 'none' : 'sentences'
         }
@@ -73,6 +86,154 @@ export function Field(props: {
       <HelperText type="error" visible={!!props.error}>
         {props.error ?? ' '}
       </HelperText>
+    </View>
+  );
+}
+
+export interface SelectOption {
+  value: string;
+  label: string;
+  description?: string;
+  /** Sangría para opciones hijas (p. ej. subcategorías). */
+  indent?: boolean;
+}
+
+/**
+ * Campo de selección: se ve como un campo de texto y abre una lista en un diálogo.
+ * Funciona igual en teléfono y en web (Paper no trae un select nativo).
+ */
+export function SelectField(props: {
+  label: string;
+  value: string | null;
+  options: SelectOption[];
+  onChange: (value: string) => void;
+  error?: string;
+  /** Texto cuando no hay opciones (p. ej. "Primero crea una cuenta"). */
+  emptyText?: string;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = props.options.find((o) => o.value === props.value);
+  return (
+    <View>
+      {/* La zona táctil va encima del campo como hermana, no lo envuelve: en web el ícono del
+          campo es un <button> y no puede quedar dentro de otro botón. */}
+      <View>
+        <TextInput
+          mode="outlined"
+          label={props.label}
+          value={selected?.label ?? ''}
+          error={!!props.error}
+          editable={false}
+          disabled={props.disabled}
+          right={<TextInput.Icon icon="menu-down" />}
+          importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
+        />
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => setOpen(true)}
+          disabled={props.disabled}
+          accessibilityRole="button"
+          accessibilityLabel={`${props.label}: ${selected?.label ?? 'sin seleccionar'}`}
+        />
+      </View>
+      <HelperText type="error" visible={!!props.error}>
+        {props.error ?? ' '}
+      </HelperText>
+      <Portal>
+        <Dialog visible={open} onDismiss={() => setOpen(false)} style={styles.dialog}>
+          <Dialog.Title>{props.label}</Dialog.Title>
+          <Dialog.ScrollArea style={styles.dialogScroll}>
+            <ScrollView>
+              {props.options.length === 0 ? (
+                <Text variant="bodyMedium" style={styles.mt}>
+                  {props.emptyText ?? 'No hay opciones disponibles'}
+                </Text>
+              ) : null}
+              {props.options.map((o) => (
+                <List.Item
+                  key={o.value}
+                  title={o.label}
+                  description={o.description}
+                  style={o.indent ? { paddingLeft: 24 } : undefined}
+                  left={(p) => (
+                    <List.Icon
+                      {...p}
+                      icon={o.value === props.value ? 'radiobox-marked' : 'radiobox-blank'}
+                    />
+                  )}
+                  onPress={() => {
+                    props.onChange(o.value);
+                    setOpen(false);
+                  }}
+                  accessibilityState={{ selected: o.value === props.value }}
+                />
+              ))}
+            </ScrollView>
+          </Dialog.ScrollArea>
+          <Dialog.Actions>
+            <Button onPress={() => setOpen(false)}>Cerrar</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </View>
+  );
+}
+
+/**
+ * Fecha de negocio. Se escribe como DD/MM/AAAA y se entrega como YYYY-MM-DD. `today` es "hoy" en
+ * la zona de la empresa (no la del teléfono). Mientras el texto no sea una fecha válida, entrega
+ * el texto tal cual para que la validación del formulario lo rechace.
+ */
+export function DateField(props: {
+  label: string;
+  value: string;
+  today: string;
+  onChange: (iso: string) => void;
+  error?: string;
+}) {
+  const [text, setText] = useState(() =>
+    parseDisplayDate(formatDate(props.value)) ? formatDate(props.value) : '',
+  );
+  const [typed, setTyped] = useState(false);
+  const yesterday = addDays(props.today, -1);
+  const pick = (iso: string) => {
+    setTyped(false);
+    setText(formatDate(iso));
+    props.onChange(iso);
+  };
+  const localError = typed && !parseDisplayDate(text) ? 'Usa el formato DD/MM/AAAA' : undefined;
+  return (
+    <View>
+      <View style={[styles.row, { gap: 8, marginBottom: 8 }]}>
+        <Chip
+          selected={props.value === props.today}
+          showSelectedCheck
+          onPress={() => pick(props.today)}
+        >
+          Hoy
+        </Chip>
+        <Chip
+          selected={props.value === yesterday}
+          showSelectedCheck
+          onPress={() => pick(yesterday)}
+        >
+          Ayer
+        </Chip>
+      </View>
+      <Field
+        label={props.label}
+        value={text}
+        placeholder="DD/MM/AAAA"
+        keyboardType="numbers-and-punctuation"
+        onChangeText={(t) => {
+          setTyped(true);
+          setText(t);
+          props.onChange(parseDisplayDate(t) ?? t);
+        }}
+        error={localError ?? props.error}
+      />
     </View>
   );
 }
@@ -193,4 +354,6 @@ export const styles = StyleSheet.create({
   mt: { marginTop: 12 },
   mtSmall: { marginTop: 4 },
   mtLarge: { marginTop: 24 },
+  dialog: { maxWidth: 520, width: '92%', alignSelf: 'center', maxHeight: '80%' },
+  dialogScroll: { paddingHorizontal: 0, maxHeight: 420 },
 });

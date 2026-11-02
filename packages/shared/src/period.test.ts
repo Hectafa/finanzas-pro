@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { periodQuerySchema, resolvePeriod } from './period';
+import { addDays, periodQuerySchema, resolvePeriod, todayIn } from './period';
 
 const MX = 'America/Mexico_City';
 
@@ -65,5 +65,19 @@ describe('resolvePeriod', () => {
       false,
     );
     expect(periodQuerySchema.parse({}).period).toBe('month');
+  });
+});
+
+describe('todayIn / addDays', () => {
+  it('"hoy" es el de la zona de la empresa, no el UTC', () => {
+    // 03:30 UTC del 1 de noviembre todavía es 31 de octubre en la Ciudad de México.
+    const now = new Date('2026-11-01T03:30:00Z');
+    expect(todayIn(MX, now)).toBe('2026-10-31');
+    expect(todayIn('UTC', now)).toBe('2026-11-01');
+  });
+
+  it('suma y resta días cruzando meses y años', () => {
+    expect(addDays('2026-03-01', -1)).toBe('2026-02-28');
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
   });
 });

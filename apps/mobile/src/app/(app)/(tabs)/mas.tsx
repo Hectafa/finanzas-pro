@@ -43,6 +43,23 @@ export default function MasScreen() {
         />
       ) : null}
       <Divider />
+      {can('accounts:view') || can('accounts:manage') ? (
+        <List.Item
+          title="Cuentas de dinero"
+          description="Caja, bancos, billeteras y terminales"
+          left={(p) => <List.Icon {...p} icon="wallet-outline" />}
+          onPress={() => router.push('/cuentas')}
+        />
+      ) : null}
+      {can('categories:manage') ? (
+        <List.Item
+          title="Categorías"
+          description="De ingresos y de gastos"
+          left={(p) => <List.Icon {...p} icon="tag-multiple-outline" />}
+          onPress={() => router.push('/categorias')}
+        />
+      ) : null}
+      <Divider />
       {can('users:view') ? (
         <List.Item
           title="Usuarios y accesos"

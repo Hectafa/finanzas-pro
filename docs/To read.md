@@ -1,20 +1,21 @@
 # To read — dónde nos quedamos
 
-> Actualizado: 2026-10-29. Léelo antes de continuar.
-> Siguiente paso acordado: **Fase 2, bloque B (pantallas)**.
+> Actualizado: 2026-10-31. Léelo antes de continuar.
+> Siguiente paso acordado: **Fase 2, bloque C (comprobantes)**. El bloque B está en el PR `fase-2-pantallas` (pendiente de fusionar).
 
 ## 1. Estado en una línea
 
-La **Fase 1 está cerrada** (PR #1 y #2 fusionados). Del **bloque A de la Fase 2** (núcleo contable de la API) está fusionado el PR #3. **Faltan los bloques B, C y D de la Fase 2.**
+La **Fase 1 está cerrada** (PR #1 y #2 fusionados). Del **bloque A de la Fase 2** (núcleo contable de la API) está fusionado el PR #3. El **bloque B (pantallas)** está terminado, revisado por el usuario en web y en PR (`fase-2-pantallas`). **Faltan los bloques C y D.**
 
 | Rama / PR | Contenido | Estado |
 |---|---|---|
 | PR #1 `fase-1-fundacion` | Auth, empresas, roles, RLS, auditoría, dashboard inicial, app Expo | Fusionado |
 | PR #2 `fase-1-cierre` | ESLint y reglas de dinero, edición de roles personalizados, versión web | Fusionado |
 | PR #3 `fase-2-finanzas` | Libro contable, cuentas, categorías, movimientos, dashboard con cifras reales | Fusionado |
-| `main` | Contiene todo lo anterior | CI en verde |
+| PR #4 `fase-2-pantallas` | Bloque B: cuentas, categorías, Registrar, Movimientos, detalle, Inicio | Abierto |
+| `main` | Contiene PR #1 a #3 | CI en verde |
 
-Pruebas automatizadas: **174** (shared 25, mobile 14, API 135). Lint y tipos limpios.
+Pruebas automatizadas: **185** (shared 27, mobile 23, API 135). Lint y tipos limpios.
 
 ## 2. Cómo levantar todo mañana
 
@@ -56,15 +57,21 @@ Pruebas automatizadas: **174** (shared 25, mobile 14, API 135). Lint y tipos lim
 - **Dashboard:** disponible, por depositar, ingresos y gastos sin IVA, flujo neto y movimientos por revisar aparte.
 - **Endpoints:** `/v1/accounts`, `/v1/categories`, `/v1/transactions` (`/approve`, `/void`) y `/v1/ledger/verify`. Contratos en `packages/shared/src/finance.ts`.
 
+### Fase 2, bloque B (pantallas, PR `fase-2-pantallas`)
+- **Más › Cuentas de dinero** (`(app)/cuentas.tsx`): lista con saldos, crear con saldo inicial y fecha, renombrar, archivar, ver archivadas.
+- **Más › Categorías** (`(app)/categorias.tsx`): gastos e ingresos, subcategorías, renombrar, archivar.
+- **Registrar**: ingreso, gasto, transferencia, aportación y retiro. `id` generado en el dispositivo (`expo-crypto`); si falla la red se conserva el `id` para reintentar sin duplicar. IVA 16/8/0 con vista previa, fecha con "Hoy/Ayer" (DD/MM/AAAA, "hoy" en la zona de la empresa), teclado decimal.
+- **Movimientos**: búsqueda, filtros por estado, tipo y cuenta, paginación por cursor. Detalle en `(app)/movimiento/[id].tsx`: aprobar, anular o rechazar con motivo, editar campos descriptivos.
+- **Inicio**: tarjeta "Por depositar" y aviso "N por revisar" que abre Movimientos filtrado.
+- `todayIn` y `addDays` se movieron a `packages/shared` (los usan la API y la app).
+- Componentes nuevos en `components/ui.tsx`: `SelectField` y `DateField`.
+- Revisado por el usuario en la web (2026-11-01). Falta probarlo en un teléfono real.
+- La prueba dejó en la Cafetería Demo una cuenta "MP renombrada …" con saldo 250.50, y un gasto y una transferencia anulados.
+
 ## 4. Faltantes
 
 ### Fase 2 — por hacer, en este orden
-- [ ] **Bloque B: pantallas (teléfono y web).** La API ya existe.
-  - Cuentas: lista con saldos, crear con saldo inicial, renombrar, archivar.
-  - Categorías: lista, crear, subcategorías, renombrar, archivar.
-  - Pestaña **Registrar**: formularios de ingreso, gasto, transferencia y aportación o retiro. Generan el `id` en el dispositivo y usan teclado numérico.
-  - Pestaña **Movimientos**: lista con filtros y búsqueda, detalle, aprobar, anular con motivo y editar campos descriptivos.
-  - Inicio: mostrar "Por depositar" y el aviso de "N por revisar".
+- [x] **Bloque B: pantallas.** Hecho y revisado en web; falta probarlo en teléfono.
 - [ ] **Bloque C: comprobantes.**
   - Puerto `Storage` con **disco local en desarrollo** (decidido), URLs firmadas de corta vida y validación de tipo y tamaño.
   - Detección de duplicados por `sha256` con confirmación explícita.
@@ -110,6 +117,7 @@ Pruebas automatizadas: **174** (shared 25, mobile 14, API 135). Lint y tipos lim
 
 ## 6. Avisos y riesgos
 - **El repo sigue en OneDrive.** La Fase 0 (D2) recomienda moverlo a `C:\dev\finanzas-pro`, porque OneDrive puede bloquear archivos o romper `node_modules`. Conviene hacerlo antes del bloque D.
+- **Acentos en pruebas manuales:** no envíes textos con tildes o ñ con `curl -d` desde Git Bash o PowerShell. La consola de Windows los convierte mal y el servidor guarda "�" (U+FFFD). Así se dañaron 3 descripciones demo, ya corregidas el 2026-11-01. Usa Swagger (`/docs`), la app o un script de Node. La app y la API sí guardan bien UTF-8.
 - **Reloj y zona horaria:** las fechas de negocio usan la zona de la empresa (`America/Mexico_City`). Git Bash en Windows no reconoce esa zona: para obtener "hoy" en scripts, usa Node con luxon.
 - **Migración del libro:** se corrigió la función de cuadre dentro de `20261029130000_ledger` antes de publicarla. Si alguna base local marca la migración como modificada, la solución es `npx prisma migrate reset` en desarrollo. Eso borra los datos locales y luego hay que correr `pnpm --filter @finanzas/api db:seed:demo`.
 - `expo-doctor` marca la versión de `react-native` (0.88.1 contra 0.88.0); está documentado y es intencional.

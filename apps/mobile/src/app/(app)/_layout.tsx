@@ -53,6 +53,9 @@ export default function AppLayout() {
       <Stack.Screen name="usuarios" options={{ title: 'Usuarios y accesos' }} />
       <Stack.Screen name="roles" options={{ title: 'Roles y permisos' }} />
       <Stack.Screen name="sesiones" options={{ title: 'Sesiones activas' }} />
+      <Stack.Screen name="cuentas" options={{ title: 'Cuentas de dinero' }} />
+      <Stack.Screen name="categorias" options={{ title: 'Categorías' }} />
+      <Stack.Screen name="movimiento/[id]" options={{ title: 'Movimiento' }} />
     </Stack>
   );
 }
