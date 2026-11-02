@@ -26,13 +26,22 @@ export default function InicioScreen() {
     <ScrollView
       style={{ backgroundColor: theme.colors.background }}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={dashboard.isRefetching} onRefresh={() => void dashboard.refetch()} />}
+      refreshControl={
+        <RefreshControl
+          refreshing={dashboard.isRefetching}
+          onRefresh={() => void dashboard.refetch()}
+        />
+      }
     >
       <View style={[styles.row, { justifyContent: 'space-between' }]}>
         <Text variant="titleLarge" style={{ flexShrink: 1 }}>
           {company.data?.name ?? ''}
         </Text>
-        <Chip icon="swap-horizontal" onPress={() => router.push('/select-company')} accessibilityLabel="Cambiar de empresa">
+        <Chip
+          icon="swap-horizontal"
+          onPress={() => router.push('/select-company')}
+          accessibilityLabel="Cambiar de empresa"
+        >
           Cambiar
         </Chip>
       </View>
@@ -45,7 +54,8 @@ export default function InicioScreen() {
       {company.isPending ? <Loading /> : null}
       {company.data && !canView ? (
         <Text variant="bodyMedium" style={styles.mt}>
-          Tu rol ({company.data.role.name}) no incluye el resumen financiero. Usa la pestaña Registrar para capturar operaciones.
+          Tu rol ({company.data.role.name}) no incluye el resumen financiero. Usa la pestaña
+          Registrar para capturar operaciones.
         </Text>
       ) : null}
 
@@ -59,22 +69,59 @@ export default function InicioScreen() {
             density="small"
           />
           {dashboard.isPending ? <Loading label="Calculando…" /> : null}
-          {dashboard.isError ? <ErrorState message={dashboard.error.message} onRetry={() => void dashboard.refetch()} /> : null}
+          {dashboard.isError ? (
+            <ErrorState
+              message={dashboard.error.message}
+              onRetry={() => void dashboard.refetch()}
+            />
+          ) : null}
           {dashboard.data ? (
             <>
-              <Text variant="bodySmall" style={[styles.mt, { color: theme.colors.onSurfaceVariant }]}>
-                {formatDateRange(dashboard.data.period.fromDate, dashboard.data.period.toDate)} · {dashboard.data.currency}
+              <Text
+                variant="bodySmall"
+                style={[styles.mt, { color: theme.colors.onSurfaceVariant }]}
+              >
+                {formatDateRange(dashboard.data.period.fromDate, dashboard.data.period.toDate)} ·{' '}
+                {dashboard.data.currency}
               </Text>
               <View style={[styles.grid, styles.mt]}>
-                <MetricCard title="Dinero disponible" metric={dashboard.data.metrics.availableCash} currency={dashboard.data.currency} />
-                <MetricCard title="Flujo neto" metric={dashboard.data.metrics.netCashFlow} currency={dashboard.data.currency} />
-                <MetricCard title="Ingresos" metric={dashboard.data.metrics.income} currency={dashboard.data.currency} />
-                <MetricCard title="Egresos" metric={dashboard.data.metrics.expenses} currency={dashboard.data.currency} />
-                <MetricCard title="Por cobrar" metric={dashboard.data.metrics.receivables} currency={dashboard.data.currency} />
-                <MetricCard title="Por pagar" metric={dashboard.data.metrics.payables} currency={dashboard.data.currency} />
+                <MetricCard
+                  title="Dinero disponible"
+                  metric={dashboard.data.metrics.availableCash}
+                  currency={dashboard.data.currency}
+                />
+                <MetricCard
+                  title="Flujo neto"
+                  metric={dashboard.data.metrics.netCashFlow}
+                  currency={dashboard.data.currency}
+                />
+                <MetricCard
+                  title="Ingresos"
+                  metric={dashboard.data.metrics.income}
+                  currency={dashboard.data.currency}
+                />
+                <MetricCard
+                  title="Egresos"
+                  metric={dashboard.data.metrics.expenses}
+                  currency={dashboard.data.currency}
+                />
+                <MetricCard
+                  title="Por cobrar"
+                  metric={dashboard.data.metrics.receivables}
+                  currency={dashboard.data.currency}
+                />
+                <MetricCard
+                  title="Por pagar"
+                  metric={dashboard.data.metrics.payables}
+                  currency={dashboard.data.currency}
+                />
               </View>
-              <Text variant="bodySmall" style={[styles.mt, { color: theme.colors.onSurfaceVariant }]}>
-                Equipo: {dashboard.data.team.activeMembers} miembro(s) activo(s) · {dashboard.data.team.pendingInvitations} invitación(es) pendiente(s)
+              <Text
+                variant="bodySmall"
+                style={[styles.mt, { color: theme.colors.onSurfaceVariant }]}
+              >
+                Equipo: {dashboard.data.team.activeMembers} miembro(s) activo(s) ·{' '}
+                {dashboard.data.team.pendingInvitations} invitación(es) pendiente(s)
               </Text>
             </>
           ) : null}

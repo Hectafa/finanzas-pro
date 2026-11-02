@@ -24,7 +24,9 @@ describe('resolvePeriod', () => {
   });
 
   it('trimestre y año', () => {
-    expect(resolvePeriod({ period: 'quarter', date: '2026-05-20' }, MX).fromDate).toBe('2026-04-01');
+    expect(resolvePeriod({ period: 'quarter', date: '2026-05-20' }, MX).fromDate).toBe(
+      '2026-04-01',
+    );
     const y = resolvePeriod({ period: 'year', date: '2026-12-31' }, MX);
     expect(y.fromDate).toBe('2026-01-01');
     expect(y.toDate).toBe('2026-12-31');
@@ -50,12 +52,18 @@ describe('resolvePeriod', () => {
   });
 
   it('rechaza rangos invertidos y excesivos', () => {
-    expect(() => resolvePeriod({ period: 'custom', from: '2026-02-01', to: '2026-01-01' }, MX)).toThrow();
-    expect(() => resolvePeriod({ period: 'custom', from: '2015-01-01', to: '2026-01-01' }, MX)).toThrow();
+    expect(() =>
+      resolvePeriod({ period: 'custom', from: '2026-02-01', to: '2026-01-01' }, MX),
+    ).toThrow();
+    expect(() =>
+      resolvePeriod({ period: 'custom', from: '2015-01-01', to: '2026-01-01' }, MX),
+    ).toThrow();
   });
 
   it('el esquema exige from/to en personalizado y aplica month por defecto', () => {
-    expect(periodQuerySchema.safeParse({ period: 'custom', from: '2026-01-01' }).success).toBe(false);
+    expect(periodQuerySchema.safeParse({ period: 'custom', from: '2026-01-01' }).success).toBe(
+      false,
+    );
     expect(periodQuerySchema.parse({}).period).toBe('month');
   });
 });

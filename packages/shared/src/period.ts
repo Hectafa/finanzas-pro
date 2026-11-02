@@ -37,7 +37,11 @@ export interface ResolvedPeriod {
  * Convierte un periodo a un intervalo [start, end) en la zona horaria de la empresa.
  * Semanas ISO (lunes a domingo). Los límites respetan cambios de horario.
  */
-export function resolvePeriod(query: PeriodQuery, timeZone: string, now: Date = new Date()): ResolvedPeriod {
+export function resolvePeriod(
+  query: PeriodQuery,
+  timeZone: string,
+  now: Date = new Date(),
+): ResolvedPeriod {
   let start: DateTime;
   let end: DateTime;
 

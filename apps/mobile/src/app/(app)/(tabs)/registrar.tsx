@@ -14,7 +14,9 @@ const ACTIONS = [
 export default function RegistrarScreen() {
   return (
     <Screen>
-      <Text variant="bodyMedium">Registro rápido de operaciones. Se habilitará conforme avancen las fases.</Text>
+      <Text variant="bodyMedium">
+        Registro rápido de operaciones. Se habilitará conforme avancen las fases.
+      </Text>
       {ACTIONS.map((a) => (
         <List.Item
           key={a.title}
